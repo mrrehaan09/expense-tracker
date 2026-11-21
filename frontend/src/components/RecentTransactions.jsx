@@ -250,7 +250,7 @@ export default function RecentTransactions({
   }, [filtered]);
 
   return (
-    <div className="bg-[#17171B] rounded-2xl border border-[#302B25] p-5 sm:p-6 shadow-sm minimal-card space-y-5">
+    <div className="bg-[#17171B] rounded-xl sm:rounded-2xl border border-[#302B25] p-3.5 sm:p-6 shadow-sm minimal-card space-y-3.5 sm:space-y-5">
       {/* ── Header Row ──────────────────────────────────────────────── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="flex items-center gap-2.5 min-w-0">
@@ -258,31 +258,31 @@ export default function RecentTransactions({
             <Receipt className="w-4 h-4" />
           </div>
           <div className="min-w-0">
-            <div className="flex items-center gap-2">
-              <h2 className="text-base font-bold text-[#F5F1E8] tracking-tight">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h2 className="text-sm sm:text-base font-bold text-[#F5F1E8] tracking-tight">
                 Recent Transactions
               </h2>
-              <span className="text-[11px] font-semibold bg-[#1E1E23] text-[#A6A19A] border border-[#302B25] px-2 py-0.5 rounded-full shrink-0">
+              <span className="text-[10px] sm:text-[11px] font-semibold bg-[#1E1E23] text-[#A6A19A] border border-[#302B25] px-2 py-0.5 rounded-full shrink-0">
                 {filtered.length} of {transactions.length} records
               </span>
             </div>
-            <p className="text-xs text-[#A6A19A] truncate">
+            <p className="text-[11px] sm:text-xs text-[#A6A19A] truncate">
               Live ledger with category and payment channel tracking
             </p>
           </div>
         </div>
 
         {/* Action Header: Export PDF Button & Type Toggle */}
-        <div className="flex flex-wrap items-center gap-2 sm:gap-2.5 self-start sm:self-auto shrink-0">
-          {/* Primary Clearly Visible Export PDF Button */}
+        <div className="flex flex-wrap items-center gap-2 sm:gap-2.5 self-start sm:self-auto shrink-0 w-full sm:w-auto">
+          {/* Export PDF Button */}
           <button
             type="button"
             onClick={() => setIsExportModalOpen(true)}
             disabled={transactions.length === 0}
             title="Export complete or filtered transaction history as PDF"
-            className="inline-flex items-center gap-1.5 px-3 sm:px-3.5 py-1.5 bg-[#1E1E23] hover:bg-[#25252B] active:bg-[#1E1E23] text-[#F5F1E8] text-xs font-semibold rounded-xl transition cursor-pointer border border-[#302B25] hover:border-[#D4AF72]/40 disabled:opacity-40 shrink-0 whitespace-nowrap"
+            className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 bg-[#1E1E23] hover:bg-[#25252B] active:bg-[#1E1E23] text-[#F5F1E8] text-xs font-semibold rounded-xl transition cursor-pointer border border-[#302B25] hover:border-[#D4AF72]/40 disabled:opacity-40 shrink-0 whitespace-nowrap shadow-xs"
           >
-            <FileDown className="w-3.5 h-3.5 text-[#D4AF72]" />
+            <FileDown className="w-3.5 h-3.5 text-[#D4AF72] shrink-0" />
             <span>Export PDF</span>
           </button>
 
@@ -290,7 +290,7 @@ export default function RecentTransactions({
           <div className="inline-flex items-center bg-[#131316] p-1 rounded-xl text-xs font-semibold border border-[#302B25] shrink-0">
             <button
               onClick={() => setFilterType('all')}
-              className={`px-2.5 sm:px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
+              className={`px-2.5 sm:px-3 py-1 rounded-lg transition-all cursor-pointer ${
                 filterType === 'all'
                   ? 'bg-[#1E1E23] text-[#F5F1E8] border border-[#302B25] shadow-xs'
                   : 'text-[#A6A19A] hover:text-[#F5F1E8]'
@@ -300,32 +300,32 @@ export default function RecentTransactions({
             </button>
             <button
               onClick={() => setFilterType('income')}
-              className={`px-2.5 sm:px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
+              className={`px-2.5 sm:px-3 py-1 rounded-lg transition-all cursor-pointer ${
                 filterType === 'income'
                   ? 'bg-[#2EB872]/15 text-[#2EB872] border border-[#2EB872]/30 shadow-xs'
                   : 'text-[#A6A19A] hover:text-[#2EB872]'
               }`}
             >
-              Income (+)
+              In (+)
             </button>
             <button
               onClick={() => setFilterType('expense')}
-              className={`px-2.5 sm:px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
+              className={`px-2.5 sm:px-3 py-1 rounded-lg transition-all cursor-pointer ${
                 filterType === 'expense'
                   ? 'bg-[#E05263]/15 text-[#E05263] border border-[#E05263]/30 shadow-xs'
                   : 'text-[#A6A19A] hover:text-[#E05263]'
               }`}
             >
-              Expenses (-)
+              Out (-)
             </button>
           </div>
         </div>
       </div>
 
-      {/* ── Date Filter Preset Tabs ──────────────────────────────── */}
-      <div className="flex flex-wrap items-center gap-1.5 p-1 bg-[#131316] rounded-xl border border-[#302B25] text-xs font-medium">
-        <span className="px-2 text-[#A6A19A] font-bold flex items-center gap-1 text-[11px] uppercase tracking-wider shrink-0">
-          <Clock className="w-3 h-3 text-[#A6A19A]" />
+      {/* ── Date Filter Preset Tabs (Smooth horizontal scrolling on mobile) ── */}
+      <div className="flex items-center gap-1.5 p-1 bg-[#131316] rounded-xl border border-[#302B25] text-xs font-medium overflow-x-auto no-scrollbar scroll-smooth">
+        <span className="pl-2 pr-1 text-[#A6A19A] font-bold flex items-center gap-1 text-[10px] sm:text-[11px] uppercase tracking-wider shrink-0">
+          <Clock className="w-3 h-3 text-[#D4AF72]" />
           Period:
         </span>
         {[
@@ -339,7 +339,7 @@ export default function RecentTransactions({
           <button
             key={item.id}
             onClick={() => setDateFilter(item.id)}
-            className={`px-3 py-1 rounded-lg transition-all text-xs font-semibold cursor-pointer shrink-0 ${
+            className={`px-2.5 sm:px-3 py-1 rounded-lg transition-all text-xs font-semibold cursor-pointer shrink-0 whitespace-nowrap ${
               dateFilter === item.id
                 ? 'bg-[#D4AF72]/15 text-[#D4AF72] border border-[#D4AF72]/30 font-bold shadow-xs'
                 : 'text-[#A6A19A] hover:text-[#F5F1E8] hover:bg-[#1E1E23] border border-transparent'
@@ -352,36 +352,53 @@ export default function RecentTransactions({
 
       {/* ── Custom Date Pickers (Shown if Custom Range selected) ── */}
       {dateFilter === 'custom' && (
-        <div className="p-3 bg-[#131316] rounded-xl border border-[#302B25] flex flex-wrap items-center gap-3 text-xs animate-fade-in">
-          <div className="flex items-center gap-2">
-            <CalendarRange className="w-4 h-4 text-[#D4AF72]" />
-            <span className="font-bold text-[#F5F1E8]">Date Range:</span>
+        <div className="p-3 bg-[#131316] rounded-xl border border-[#302B25] flex flex-col sm:flex-row sm:items-center gap-2.5 sm:gap-3 text-xs animate-fade-in">
+          <div className="flex items-center justify-between sm:justify-start gap-2">
+            <div className="flex items-center gap-1.5 text-xs font-bold text-[#F5F1E8]">
+              <CalendarRange className="w-4 h-4 text-[#D4AF72] shrink-0" />
+              <span>Date Range:</span>
+            </div>
+            {(customStartDate || customEndDate) && (
+              <button
+                onClick={() => {
+                  setCustomStartDate('');
+                  setCustomEndDate('');
+                }}
+                className="sm:hidden text-[11px] font-bold text-[#E05263] hover:underline flex items-center gap-1 cursor-pointer"
+              >
+                <X className="w-3 h-3" /> Clear
+              </button>
+            )}
           </div>
-          <div className="flex items-center gap-2">
-            <label className="text-[#A6A19A] font-medium">From:</label>
-            <input
-              type="date"
-              value={customStartDate}
-              onChange={(e) => setCustomStartDate(e.target.value)}
-              className="px-2.5 py-1.5 bg-[#1E1E23] border border-[#302B25] rounded-lg text-[#F5F1E8] text-xs font-medium focus:border-[#D4AF72] focus:ring-1 focus:ring-[#D4AF72]/30 outline-none"
-            />
+
+          <div className="grid grid-cols-1 xs:grid-cols-2 sm:flex sm:items-center gap-2 flex-1">
+            <div className="flex items-center gap-1.5">
+              <label className="text-[#A6A19A] font-medium text-[11px] sm:text-xs shrink-0 w-10 sm:w-auto">From:</label>
+              <input
+                type="date"
+                value={customStartDate}
+                onChange={(e) => setCustomStartDate(e.target.value)}
+                className="w-full sm:w-auto px-2.5 py-1.5 bg-[#1E1E23] border border-[#302B25] rounded-lg text-[#F5F1E8] text-xs font-medium focus:border-[#D4AF72] focus:ring-1 focus:ring-[#D4AF72]/30 outline-none"
+              />
+            </div>
+            <div className="flex items-center gap-1.5">
+              <label className="text-[#A6A19A] font-medium text-[11px] sm:text-xs shrink-0 w-10 sm:w-auto">To:</label>
+              <input
+                type="date"
+                value={customEndDate}
+                onChange={(e) => setCustomEndDate(e.target.value)}
+                className="w-full sm:w-auto px-2.5 py-1.5 bg-[#1E1E23] border border-[#302B25] rounded-lg text-[#F5F1E8] text-xs font-medium focus:border-[#D4AF72] focus:ring-1 focus:ring-[#D4AF72]/30 outline-none"
+              />
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            <label className="text-[#A6A19A] font-medium">To:</label>
-            <input
-              type="date"
-              value={customEndDate}
-              onChange={(e) => setCustomEndDate(e.target.value)}
-              className="px-2.5 py-1.5 bg-[#1E1E23] border border-[#302B25] rounded-lg text-[#F5F1E8] text-xs font-medium focus:border-[#D4AF72] focus:ring-1 focus:ring-[#D4AF72]/30 outline-none"
-            />
-          </div>
+
           {(customStartDate || customEndDate) && (
             <button
               onClick={() => {
                 setCustomStartDate('');
                 setCustomEndDate('');
               }}
-              className="text-[11px] font-bold text-[#E05263] hover:underline flex items-center gap-1 cursor-pointer"
+              className="hidden sm:inline-flex text-[11px] font-bold text-[#E05263] hover:underline items-center gap-1 cursor-pointer shrink-0"
             >
               <X className="w-3 h-3" /> Clear Range
             </button>
@@ -389,10 +406,10 @@ export default function RecentTransactions({
         </div>
       )}
 
-      {/* ── Search, Category, Payment & Reset Controls (Responsive 12-col) ── */}
-      <div className="grid grid-cols-1 sm:grid-cols-12 gap-2.5 pt-1">
+      {/* ── Search, Category, Payment & Reset Controls ── */}
+      <div className="grid grid-cols-1 sm:grid-cols-12 gap-2 sm:gap-2.5 pt-0.5">
         {/* Search Box */}
-        <div className="sm:col-span-5 lg:col-span-5 relative">
+        <div className="sm:col-span-6 lg:col-span-6 relative">
           <Search className="w-4 h-4 text-[#6B665F] absolute left-3.5 top-1/2 -translate-y-1/2" />
           <input
             type="text"
@@ -403,60 +420,56 @@ export default function RecentTransactions({
           />
         </div>
 
-        {/* Category Dropdown */}
-        <div className="sm:col-span-3 lg:col-span-3">
-          <select
-            value={selectedCategory}
-            onChange={(e) => setSelectedCategory(e.target.value)}
-            className="w-full px-3 py-2 text-xs bg-[#131316] border border-[#302B25] rounded-xl focus:bg-[#17171B] focus:outline-none focus:border-[#D4AF72]/60 focus:ring-1 focus:ring-[#D4AF72]/30 transition text-[#F5F1E8] font-medium cursor-pointer"
-          >
-            <option value="all">All Categories</option>
-            {allCategories.map((cat) => (
-              <option key={cat} value={cat} className="bg-[#17171B] text-[#F5F1E8]">
-                {cat}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        {/* Payment Method Dropdown */}
-        <div className="sm:col-span-2 lg:col-span-3">
-          <select
-            value={selectedPaymentMethod}
-            onChange={(e) => setSelectedPaymentMethod(e.target.value)}
-            className="w-full px-3 py-2 text-xs bg-[#131316] border border-[#302B25] rounded-xl focus:bg-[#17171B] focus:outline-none focus:border-[#D4AF72]/60 focus:ring-1 focus:ring-[#D4AF72]/30 transition text-[#F5F1E8] font-medium cursor-pointer"
-          >
-            <option value="all">All Methods</option>
-            {PAYMENT_METHODS.map((method) => (
-              <option key={method} value={method} className="bg-[#17171B] text-[#F5F1E8]">
-                {method}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        {/* Reset button if active — robust col-span so it never clips */}
-        <div className="sm:col-span-2 lg:col-span-1 flex items-center justify-end">
-          {hasActiveFilters ? (
-            <button
-              onClick={clearFilters}
-              className="w-full py-2 px-2 text-[11px] font-bold text-[#D4AF72] bg-[#D4AF72]/10 hover:bg-[#D4AF72]/20 border border-[#D4AF72]/25 rounded-xl transition-colors text-center cursor-pointer whitespace-nowrap shrink-0"
-              title="Clear all filters"
+        {/* Dropdowns Row */}
+        <div className="sm:col-span-6 lg:col-span-6 grid grid-cols-2 gap-2">
+          {/* Category Dropdown */}
+          <div className="col-span-1">
+            <select
+              value={selectedCategory}
+              onChange={(e) => setSelectedCategory(e.target.value)}
+              className="w-full px-2.5 sm:px-3 py-2 text-xs bg-[#131316] border border-[#302B25] rounded-xl focus:bg-[#17171B] focus:outline-none focus:border-[#D4AF72]/60 focus:ring-1 focus:ring-[#D4AF72]/30 transition text-[#F5F1E8] font-medium cursor-pointer truncate"
             >
-              Reset
-            </button>
-          ) : (
-            <div className="hidden sm:flex items-center justify-center w-full text-[#6B665F]">
-              <SlidersHorizontal className="w-4 h-4" />
-            </div>
-          )}
+              <option value="all">All Categories</option>
+              {allCategories.map((cat) => (
+                <option key={cat} value={cat} className="bg-[#17171B] text-[#F5F1E8]">
+                  {cat}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Payment Method Dropdown + Reset */}
+          <div className="col-span-1 flex items-center gap-1.5">
+            <select
+              value={selectedPaymentMethod}
+              onChange={(e) => setSelectedPaymentMethod(e.target.value)}
+              className="w-full px-2.5 sm:px-3 py-2 text-xs bg-[#131316] border border-[#302B25] rounded-xl focus:bg-[#17171B] focus:outline-none focus:border-[#D4AF72]/60 focus:ring-1 focus:ring-[#D4AF72]/30 transition text-[#F5F1E8] font-medium cursor-pointer truncate"
+            >
+              <option value="all">All Channels</option>
+              {PAYMENT_METHODS.map((method) => (
+                <option key={method} value={method} className="bg-[#17171B] text-[#F5F1E8]">
+                  {method}
+                </option>
+              ))}
+            </select>
+
+            {hasActiveFilters && (
+              <button
+                onClick={clearFilters}
+                className="py-2 px-2 text-[11px] font-bold text-[#D4AF72] bg-[#D4AF72]/10 hover:bg-[#D4AF72]/20 border border-[#D4AF72]/25 rounded-xl transition-colors text-center cursor-pointer whitespace-nowrap shrink-0"
+                title="Clear all filters"
+              >
+                Reset
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
       {/* ── Transaction List (Grouped by Date) ────────────────────── */}
       <div className="space-y-4 pt-1">
         {groupedTransactions.length === 0 ? (
-          <div className="text-center py-12 px-4 border border-dashed border-[#302B25] rounded-2xl bg-[#131316]/50">
+          <div className="text-center py-10 sm:py-12 px-4 border border-dashed border-[#302B25] rounded-xl sm:rounded-2xl bg-[#131316]/50">
             <div className="w-10 h-10 rounded-xl bg-[#1E1E23] text-[#A6A19A] border border-[#302B25] flex items-center justify-center mx-auto mb-3">
               <Receipt className="w-5 h-5 text-[#D4AF72]" />
             </div>
@@ -478,147 +491,288 @@ export default function RecentTransactions({
             )}
           </div>
         ) : (
-          <div className="overflow-x-auto rounded-xl border border-[#302B25]">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="bg-[#131316] text-[#A6A19A] border-b border-[#302B25] text-[11px] font-bold uppercase tracking-wider">
-                  <th className="py-3 px-4">Transaction</th>
-                  <th className="py-3 px-4 hidden md:table-cell">Category</th>
-                  <th className="py-3 px-4 hidden sm:table-cell">Payment Method</th>
-                  <th className="py-3 px-4 text-right">Amount</th>
-                  <th className="py-3 px-3 text-center w-12">Action</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[#302B25]/60 text-xs">
-                {groupedTransactions.map((group) => (
-                  <tr key={`group-${group.dateKey}`} className="contents">
-                    {/* Date Subheader Row */}
-                    <td colSpan={5} className="bg-[#131316]/90 px-4 py-2 border-y border-[#302B25]">
-                      <div className="flex items-center justify-between text-[11px] font-bold text-[#A6A19A]">
-                        <span className="flex items-center gap-1.5 text-[#F5F1E8]">
-                          <span className="w-1.5 h-1.5 rounded-full bg-[#D4AF72]" />
-                          <span>{group.label}</span>
-                          <span className="text-[#6B665F] font-normal">
-                            ({group.fullDate.toLocaleDateString('en-IN', { weekday: 'short' })})
-                          </span>
+          <div className="space-y-3">
+            {/* ─────────────────────────────────────────────────────────────
+                MOBILE CARD / LIST VIEW (Visible on screens < md)
+                Optimized for 320px–430px screens
+                ───────────────────────────────────────────────────────────── */}
+            <div className="md:hidden space-y-3">
+              {groupedTransactions.map((group) => (
+                <div key={`m-group-${group.dateKey}`} className="space-y-2">
+                  {/* Date Subheader Banner */}
+                  <div className="flex items-center justify-between px-3 py-1.5 bg-[#131316] rounded-xl border border-[#302B25] text-[11px] font-bold">
+                    <div className="flex items-center gap-1.5 text-[#F5F1E8] min-w-0">
+                      <span className="w-1.5 h-1.5 rounded-full bg-[#D4AF72] shrink-0" />
+                      <span className="truncate">{group.label}</span>
+                      <span className="text-[#6B665F] font-normal shrink-0">
+                        ({group.fullDate.toLocaleDateString('en-IN', { weekday: 'short' })})
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      {group.dayTotalIncome > 0 && (
+                        <span className="text-[#2EB872] font-sans">
+                          +{formatINR(group.dayTotalIncome)}
                         </span>
-                        <div className="flex items-center gap-3">
-                          {group.dayTotalIncome > 0 && (
-                            <span className="text-[#2EB872]">
-                              +{formatINR(group.dayTotalIncome)}
-                            </span>
-                          )}
-                          {group.dayTotalExpense > 0 && (
-                            <span className="text-[#E05263]">
-                              -{formatINR(group.dayTotalExpense)}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    </td>
+                      )}
+                      {group.dayTotalExpense > 0 && (
+                        <span className="text-[#E05263] font-sans">
+                          -{formatINR(group.dayTotalExpense)}
+                        </span>
+                      )}
+                    </div>
+                  </div>
 
-                    {/* Group Transactions */}
+                  {/* Transaction Cards */}
+                  <div className="space-y-2">
                     {group.items.map((tx) => {
                       const isIncome = tx.type === 'income';
                       const badgeClasses = getPaymentBadge(tx.paymentMethod);
 
                       return (
-                        <tr
-                          key={tx._id}
-                          className="hover:bg-[#1E1E23]/60 transition-colors group"
+                        <div
+                          key={`m-recent-card-${tx._id}`}
+                          className="p-3 bg-[#131316] rounded-xl border border-[#302B25] hover:border-[#D4AF72]/30 transition space-y-2"
                         >
-                          {/* Title & Group */}
-                          <td className="py-3.5 px-4">
-                            <div className="flex items-center gap-3">
+                          {/* Card Top: Icon, Title & Amount */}
+                          <div className="flex items-start justify-between gap-2.5">
+                            <div className="flex items-start gap-2.5 min-w-0 flex-1">
                               <div
-                                className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 border ${
+                                className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 border mt-0.5 ${
                                   isIncome
                                     ? 'bg-[#2EB872]/10 text-[#2EB872] border-[#2EB872]/25'
                                     : 'bg-[#E05263]/10 text-[#E05263] border-[#E05263]/25'
                                 }`}
                               >
                                 {isIncome ? (
-                                  <ArrowUpRight className="w-4 h-4" />
+                                  <ArrowUpRight className="w-3.5 h-3.5" />
                                 ) : (
-                                  <ArrowDownLeft className="w-4 h-4" />
+                                  <ArrowDownLeft className="w-3.5 h-3.5" />
                                 )}
                               </div>
-                              <div className="min-w-0">
-                                <p className="font-bold text-[#F5F1E8] truncate text-xs sm:text-sm">
+                              <div className="min-w-0 flex-1">
+                                <p className="font-bold text-[#F5F1E8] text-xs leading-snug break-words">
                                   {tx.title}
                                 </p>
-                                <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
-                                  {tx.note && (
-                                    <span className="text-[11px] text-[#A6A19A] truncate max-w-[200px]">
-                                      {tx.note}
-                                    </span>
-                                  )}
-                                  {tx.group && (
-                                    <span
-                                      className="inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.2 rounded border"
-                                      style={{
-                                        backgroundColor: tx.group.color ? `${tx.group.color}15` : '#D4AF7215',
-                                        color: tx.group.color || '#D4AF72',
-                                        borderColor: tx.group.color ? `${tx.group.color}35` : '#D4AF7235',
-                                      }}
-                                    >
-                                      <Users className="w-2.5 h-2.5" />
-                                      {tx.group.title}
-                                    </span>
-                                  )}
-                                </div>
+                                {tx.note && (
+                                  <p className="text-[11px] text-[#A6A19A] mt-0.5 break-words line-clamp-2">
+                                    {tx.note}
+                                  </p>
+                                )}
                               </div>
                             </div>
-                          </td>
 
-                          {/* Category */}
-                          <td className="py-3.5 px-4 hidden md:table-cell">
-                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#1E1E23] text-[#F5F1E8] border border-[#302B25] text-xs font-medium">
-                              <Tag className="w-3 h-3 text-[#D4AF72]" />
-                              {tx.category || 'General'}
-                            </span>
-                          </td>
+                            <div className="text-right shrink-0">
+                              <span
+                                className={`font-black text-xs sm:text-sm font-sans tracking-tight block ${
+                                  isIncome ? 'text-[#2EB872]' : 'text-[#F5F1E8]'
+                                }`}
+                              >
+                                {isIncome ? '+' : '-'}
+                                {formatINR(tx.amount)}
+                              </span>
+                            </div>
+                          </div>
 
-                          {/* Payment Method */}
-                          <td className="py-3.5 px-4 hidden sm:table-cell">
-                            <span
-                              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-xs font-semibold ${badgeClasses}`}
-                            >
-                              <CreditCard className="w-3 h-3 opacity-80" />
-                              {tx.paymentMethod || 'Other'}
-                            </span>
-                          </td>
+                          {/* Card Bottom: Badges & Delete */}
+                          <div className="flex items-center justify-between pt-1.5 border-t border-[#302B25]/50 gap-2">
+                            <div className="flex items-center gap-1.5 flex-wrap text-[10px]">
+                              {/* Group Badge (if available) */}
+                              {tx.group && (
+                                <span
+                                  className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded font-bold border shrink-0"
+                                  style={{
+                                    backgroundColor: tx.group.color ? `${tx.group.color}15` : '#D4AF7215',
+                                    color: tx.group.color || '#D4AF72',
+                                    borderColor: tx.group.color ? `${tx.group.color}35` : '#D4AF7235',
+                                  }}
+                                >
+                                  <Users className="w-2.5 h-2.5 shrink-0" />
+                                  <span className="truncate max-w-[100px]">{tx.group.title}</span>
+                                </span>
+                              )}
 
-                          {/* Amount */}
-                          <td className="py-3.5 px-4 text-right">
-                            <span
-                              className={`text-xs sm:text-sm font-black font-sans tracking-tight ${
-                                isIncome ? 'text-[#2EB872]' : 'text-[#F5F1E8]'
-                              }`}
-                            >
-                              {isIncome ? '+' : '-'}
-                              {formatINR(tx.amount)}
-                            </span>
-                          </td>
+                              {/* Category Badge */}
+                              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-[#1E1E23] text-[#F5F1E8] border border-[#302B25] font-medium shrink-0">
+                                <Tag className="w-2.5 h-2.5 text-[#D4AF72] shrink-0" />
+                                <span className="truncate max-w-[95px]">{tx.category || 'General'}</span>
+                              </span>
 
-                          {/* Action Button (Delete) */}
-                          <td className="py-3.5 px-3 text-center">
-                            <button
-                              onClick={() => onDeleteTransaction && onDeleteTransaction(tx._id)}
-                              disabled={isDeletingId === tx._id}
-                              title="Delete transaction"
-                              className="p-1.5 text-[#6B665F] hover:text-[#E05263] hover:bg-[#E05263]/10 rounded-lg transition-colors border border-transparent hover:border-[#E05263]/25 disabled:opacity-40 cursor-pointer"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                          </td>
-                        </tr>
+                              {/* Payment Channel Badge */}
+                              <span
+                                className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded border font-semibold shrink-0 ${badgeClasses}`}
+                              >
+                                <CreditCard className="w-2.5 h-2.5 opacity-80 shrink-0" />
+                                <span className="truncate max-w-[85px]">{tx.paymentMethod || 'Other'}</span>
+                              </span>
+                            </div>
+
+                            {/* Delete button (if handler provided) */}
+                            {onDeleteTransaction && (
+                              <button
+                                type="button"
+                                onClick={() => onDeleteTransaction(tx._id)}
+                                disabled={isDeletingId === tx._id}
+                                className="p-1.5 text-[#6B665F] hover:text-[#E05263] hover:bg-[#E05263]/10 rounded-lg transition-colors border border-transparent hover:border-[#E05263]/25 disabled:opacity-40 cursor-pointer shrink-0"
+                                title="Delete transaction"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            )}
+                          </div>
+                        </div>
                       );
                     })}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* ─────────────────────────────────────────────────────────────
+                DESKTOP TABLE VIEW (Visible on screens >= md)
+                High density tabular layout preserved
+                ───────────────────────────────────────────────────────────── */}
+            <div className="hidden md:block overflow-x-auto rounded-xl border border-[#302B25]">
+              <table className="w-full text-left border-collapse min-w-[560px]">
+                <thead>
+                  <tr className="bg-[#131316] text-[#A6A19A] border-b border-[#302B25] text-[11px] font-bold uppercase tracking-wider">
+                    <th className="py-3 px-4">Transaction</th>
+                    <th className="py-3 px-4">Category</th>
+                    <th className="py-3 px-4">Payment Method</th>
+                    <th className="py-3 px-4 text-right">Amount</th>
+                    <th className="py-3 px-3 text-center w-12">Action</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-[#302B25]/60 text-xs">
+                  {groupedTransactions.map((group) => (
+                    <tr key={`group-${group.dateKey}`} className="contents">
+                      {/* Date Subheader Row */}
+                      <td colSpan={5} className="bg-[#131316]/90 px-4 py-2 border-y border-[#302B25]">
+                        <div className="flex items-center justify-between text-[11px] font-bold text-[#A6A19A]">
+                          <span className="flex items-center gap-1.5 text-[#F5F1E8]">
+                            <span className="w-1.5 h-1.5 rounded-full bg-[#D4AF72]" />
+                            <span>{group.label}</span>
+                            <span className="text-[#6B665F] font-normal">
+                              ({group.fullDate.toLocaleDateString('en-IN', { weekday: 'short' })})
+                            </span>
+                          </span>
+                          <div className="flex items-center gap-3">
+                            {group.dayTotalIncome > 0 && (
+                              <span className="text-[#2EB872]">
+                                +{formatINR(group.dayTotalIncome)}
+                              </span>
+                            )}
+                            {group.dayTotalExpense > 0 && (
+                              <span className="text-[#E05263]">
+                                -{formatINR(group.dayTotalExpense)}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </td>
+
+                      {/* Group Transactions */}
+                      {group.items.map((tx) => {
+                        const isIncome = tx.type === 'income';
+                        const badgeClasses = getPaymentBadge(tx.paymentMethod);
+
+                        return (
+                          <tr
+                            key={tx._id}
+                            className="hover:bg-[#1E1E23]/60 transition-colors group"
+                          >
+                            {/* Title & Group */}
+                            <td className="py-3.5 px-4">
+                              <div className="flex items-center gap-3">
+                                <div
+                                  className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 border ${
+                                    isIncome
+                                      ? 'bg-[#2EB872]/10 text-[#2EB872] border-[#2EB872]/25'
+                                      : 'bg-[#E05263]/10 text-[#E05263] border-[#E05263]/25'
+                                  }`}
+                                >
+                                  {isIncome ? (
+                                    <ArrowUpRight className="w-4 h-4" />
+                                  ) : (
+                                    <ArrowDownLeft className="w-4 h-4" />
+                                  )}
+                                </div>
+                                <div className="min-w-0">
+                                  <p className="font-bold text-[#F5F1E8] truncate text-xs sm:text-sm">
+                                    {tx.title}
+                                  </p>
+                                  <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                                    {tx.note && (
+                                      <span className="text-[11px] text-[#A6A19A] truncate max-w-[200px]">
+                                        {tx.note}
+                                      </span>
+                                    )}
+                                    {tx.group && (
+                                      <span
+                                        className="inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.2 rounded border"
+                                        style={{
+                                          backgroundColor: tx.group.color ? `${tx.group.color}15` : '#D4AF7215',
+                                          color: tx.group.color || '#D4AF72',
+                                          borderColor: tx.group.color ? `${tx.group.color}35` : '#D4AF7235',
+                                        }}
+                                      >
+                                        <Users className="w-2.5 h-2.5" />
+                                        {tx.group.title}
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            </td>
+
+                            {/* Category */}
+                            <td className="py-3.5 px-4">
+                              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#1E1E23] text-[#F5F1E8] border border-[#302B25] text-xs font-medium">
+                                <Tag className="w-3 h-3 text-[#D4AF72]" />
+                                {tx.category || 'General'}
+                              </span>
+                            </td>
+
+                            {/* Payment Method */}
+                            <td className="py-3.5 px-4">
+                              <span
+                                className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-xs font-semibold ${badgeClasses}`}
+                              >
+                                <CreditCard className="w-3 h-3 opacity-80" />
+                                <span>{tx.paymentMethod || 'Other'}</span>
+                              </span>
+                            </td>
+
+                            {/* Amount */}
+                            <td className="py-3.5 px-4 text-right">
+                              <span
+                                className={`text-xs sm:text-sm font-black font-sans tracking-tight ${
+                                  isIncome ? 'text-[#2EB872]' : 'text-[#F5F1E8]'
+                                }`}
+                              >
+                                {isIncome ? '+' : '-'}
+                                {formatINR(tx.amount)}
+                              </span>
+                            </td>
+
+                            {/* Action Button (Delete) */}
+                            <td className="py-3.5 px-3 text-center">
+                              <button
+                                onClick={() => onDeleteTransaction && onDeleteTransaction(tx._id)}
+                                disabled={isDeletingId === tx._id}
+                                title="Delete transaction"
+                                className="p-1.5 text-[#6B665F] hover:text-[#E05263] hover:bg-[#E05263]/10 rounded-lg transition-colors border border-transparent hover:border-[#E05263]/25 disabled:opacity-40 cursor-pointer"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
       </div>
