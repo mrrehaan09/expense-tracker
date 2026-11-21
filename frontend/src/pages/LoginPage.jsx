@@ -27,7 +27,12 @@ export default function LoginPage() {
       await login(form.email.trim(), form.password);
       navigate('/dashboard');
     } catch (err) {
-      setError(err.response?.data?.message || 'Invalid credentials. Please verify your email and password.');
+      const message =
+        err.response?.data?.message ||
+        (err.code === 'ERR_NETWORK' || !err.response
+          ? 'Unable to connect to the server. Please check your backend URL and network connection.'
+          : 'Invalid credentials. Please verify your email and password.');
+      setError(message);
     } finally {
       setLoading(false);
     }

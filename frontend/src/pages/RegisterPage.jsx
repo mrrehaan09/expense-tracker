@@ -37,7 +37,12 @@ export default function RegisterPage() {
       await register(form.name.trim(), form.email.trim(), form.password);
       navigate('/dashboard');
     } catch (err) {
-      setError(err.response?.data?.message || 'Registration failed. Please try again.');
+      const message =
+        err.response?.data?.message ||
+        (err.code === 'ERR_NETWORK' || !err.response
+          ? 'Unable to connect to the server. Please check your backend URL and network connection.'
+          : 'Registration failed. Please try again.');
+      setError(message);
     } finally {
       setLoading(false);
     }
