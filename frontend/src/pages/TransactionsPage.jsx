@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useExpenses } from '../context/ExpenseContext';
 import ExportPdfModal from '../components/ExportPdfModal';
 import { TableRowSkeleton } from '../components/LoadingSkeleton';
@@ -16,24 +16,17 @@ import {
   Clock,
   FileDown,
   Plus,
+  Users,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 import {
   formatINR,
   EXPENSE_CATEGORIES,
   PAYMENT_METHODS,
   INCOME_CATEGORIES,
+  getPaymentBadge,
 } from '../utils/formatters';
-
-const getPaymentBadge = (method = 'Other') => {
-  if (method.includes('PhonePe')) return 'bg-purple-50 text-purple-700 border-purple-200/70';
-  if (method.includes('Paytm')) return 'bg-sky-50 text-sky-700 border-sky-200/70';
-  if (method.includes('Google Pay')) return 'bg-blue-50 text-blue-700 border-blue-200/70';
-  if (method.includes('UPI')) return 'bg-indigo-50 text-indigo-700 border-indigo-200/70';
-  if (method === 'Cash') return 'bg-emerald-50 text-emerald-700 border-emerald-200/70';
-  if (method.includes('Card')) return 'bg-amber-50 text-amber-700 border-amber-200/70';
-  if (method.includes('Bank') || method.includes('Net Banking')) return 'bg-teal-50 text-teal-700 border-teal-200/70';
-  return 'bg-slate-100 text-slate-700 border-slate-200/70';
-};
 
 const isSameDay = (d1, d2) =>
   d1.getFullYear() === d2.getFullYear() &&
@@ -43,20 +36,26 @@ const isSameDay = (d1, d2) =>
 const getStartOfDay = (d) => new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, 0, 0, 0);
 const getEndOfDay = (d) => new Date(d.getFullYear(), d.getMonth(), d.getDate(), 23, 59, 59, 999);
 
+const PAGE_SIZE = 15;
+
 export default function TransactionsPage() {
   const {
     user,
     loading,
     transactions,
+    groups,
     deleteTransaction,
+    updateTransactionGroup,
     setIsModalOpen,
   } = useExpenses();
 
   const [deletingId, setDeletingId] = useState(null);
+  const [reassigningId, setReassigningId] = useState(null);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
 
   // Filters State
   const [filterType, setFilterType] = useState('all'); // 'all' | 'expense' | 'income'
+  const [selectedGroupFilter, setSelectedGroupFilter] = useState('all'); // 'all' | 'personal' | groupId
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState('all');
   const [search, setSearch] = useState('');
@@ -66,9 +65,17 @@ export default function TransactionsPage() {
   const [customStartDate, setCustomStartDate] = useState('');
   const [customEndDate, setCustomEndDate] = useState('');
 
+  // Pagination State
+  const [currentPage, setCurrentPage] = useState(1);
+
   const allCategories = Array.from(
     new Set([...EXPENSE_CATEGORIES, ...INCOME_CATEGORIES])
   );
+
+  // Reset page when any filter changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filterType, selectedGroupFilter, selectedCategory, selectedPaymentMethod, search, dateFilter, customStartDate, customEndDate]);
 
   // Filter logic
   const filtered = useMemo(() => {
@@ -91,6 +98,12 @@ export default function TransactionsPage() {
 
     return transactions.filter((tx) => {
       const matchesType = filterType === 'all' ? true : tx.type === filterType;
+      const matchesGroup =
+        selectedGroupFilter === 'all'
+          ? true
+          : selectedGroupFilter === 'personal'
+          ? !tx.group
+          : (tx.group?._id || (typeof tx.group === 'string' ? tx.group : null)) === selectedGroupFilter;
       const matchesCategory =
         selectedCategory === 'all' ? true : tx.category === selectedCategory;
       const matchesPayment =
@@ -129,11 +142,19 @@ export default function TransactionsPage() {
         }
       }
 
-      return matchesType && matchesCategory && matchesPayment && matchesSearch && matchesDate;
+      return (
+        matchesType &&
+        matchesGroup &&
+        matchesCategory &&
+        matchesPayment &&
+        matchesSearch &&
+        matchesDate
+      );
     });
   }, [
     transactions,
     filterType,
+    selectedGroupFilter,
     selectedCategory,
     selectedPaymentMethod,
     search,
@@ -167,11 +188,17 @@ export default function TransactionsPage() {
   const filterDetailsText = useMemo(() => {
     const parts = [];
     if (filterType !== 'all') parts.push(`Type: ${filterType}`);
+    if (selectedGroupFilter === 'personal') {
+      parts.push('Group: Personal Only');
+    } else if (selectedGroupFilter !== 'all') {
+      const gObj = groups.find((g) => g._id === selectedGroupFilter);
+      parts.push(`Group: ${gObj ? gObj.title : 'Selected Group'}`);
+    }
     if (selectedCategory !== 'all') parts.push(`Category: ${selectedCategory}`);
     if (selectedPaymentMethod !== 'all') parts.push(`Payment: ${selectedPaymentMethod}`);
     if (search.trim()) parts.push(`Search: "${search.trim()}"`);
     return parts.join(' | ');
-  }, [filterType, selectedCategory, selectedPaymentMethod, search]);
+  }, [filterType, selectedGroupFilter, groups, selectedCategory, selectedPaymentMethod, search]);
 
   // Calculated summary for filtered items
   let filteredIncome = 0;
@@ -183,14 +210,22 @@ export default function TransactionsPage() {
   });
   const filteredNet = filteredIncome - filteredExpense;
 
-  // Grouped by date
+  // Pagination calculation
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const safeCurrentPage = Math.min(currentPage, totalPages);
+  const startIndex = (safeCurrentPage - 1) * PAGE_SIZE;
+  const paginatedTransactions = useMemo(() => {
+    return filtered.slice(startIndex, startIndex + PAGE_SIZE);
+  }, [filtered, startIndex]);
+
+  // Grouped by date (using the current page transactions for optimal rendering)
   const groupedTransactions = useMemo(() => {
     const map = new Map();
     const now = new Date();
     const yesterday = new Date(now);
     yesterday.setDate(yesterday.getDate() - 1);
 
-    filtered.forEach((tx) => {
+    paginatedTransactions.forEach((tx) => {
       const txDate = new Date(tx.date || tx.createdAt);
       const dateKey = `${txDate.getFullYear()}-${String(txDate.getMonth() + 1).padStart(2, '0')}-${String(
         txDate.getDate()
@@ -224,11 +259,12 @@ export default function TransactionsPage() {
     });
 
     return Array.from(map.values()).sort((a, b) => b.fullDate - a.fullDate);
-  }, [filtered]);
+  }, [paginatedTransactions]);
 
   // Clear filters
   const clearFilters = () => {
     setFilterType('all');
+    setSelectedGroupFilter('all');
     setSelectedCategory('all');
     setSelectedPaymentMethod('all');
     setDateFilter('all');
@@ -239,12 +275,62 @@ export default function TransactionsPage() {
 
   const hasActiveFilters =
     filterType !== 'all' ||
+    selectedGroupFilter !== 'all' ||
     selectedCategory !== 'all' ||
     selectedPaymentMethod !== 'all' ||
     dateFilter !== 'all' ||
     customStartDate !== '' ||
     customEndDate !== '' ||
     search.trim() !== '';
+
+  const handleReassignGroup = async (txId, newGroupId) => {
+    setReassigningId(txId);
+    try {
+      const res = await updateTransactionGroup(txId, newGroupId || null);
+      if (!res.success) {
+        alert(res.message || 'Failed to update transaction group');
+      }
+    } catch (err) {
+      alert(err.message || 'Error updating transaction group');
+    } finally {
+      setReassigningId(null);
+    }
+  };
+
+  // Synchronize active date filter state with Export PDF modal
+  const { exportPreset, exportStartDate, exportEndDate } = useMemo(() => {
+    const toDateStr = (d) => {
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${y}-${m}-${day}`;
+    };
+
+    if (dateFilter === 'today') {
+      const t = toDateStr(new Date());
+      return { exportPreset: 'custom', exportStartDate: t, exportEndDate: t };
+    }
+    if (dateFilter === 'yesterday') {
+      const y = new Date();
+      y.setDate(y.getDate() - 1);
+      const yStr = toDateStr(y);
+      return { exportPreset: 'custom', exportStartDate: yStr, exportEndDate: yStr };
+    }
+    if (dateFilter === 'this_week') {
+      return { exportPreset: 'this_week', exportStartDate: '', exportEndDate: '' };
+    }
+    if (dateFilter === 'this_month') {
+      return { exportPreset: 'this_month', exportStartDate: '', exportEndDate: '' };
+    }
+    if (dateFilter === 'custom') {
+      return {
+        exportPreset: 'custom',
+        exportStartDate: customStartDate,
+        exportEndDate: customEndDate,
+      };
+    }
+    return { exportPreset: 'all', exportStartDate: '', exportEndDate: '' };
+  }, [dateFilter, customStartDate, customEndDate]);
 
   const handleDelete = async (id) => {
     if (!window.confirm('Delete this transaction record?')) return;
@@ -260,86 +346,98 @@ export default function TransactionsPage() {
     <div className="space-y-6">
       {/* ── Summary Metrics Ribbon ─────────────────────────────────── */}
       <div className="animate-section-1 grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-        <div className="p-4 bg-white rounded-2xl border border-slate-200/80 shadow-xs minimal-card">
-          <span className="block text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+        <div className="p-4 sm:p-5 bg-[#17171B] rounded-2xl border border-[#302B25] shadow-xs minimal-card">
+          <span className="block text-[11px] font-bold text-[#A6A19A] uppercase tracking-wider">
             Total Records
           </span>
-          <span className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+          <div className="text-xl sm:text-2xl font-black text-[#F5F1E8] tracking-tight font-sans mt-1">
             {filtered.length}{' '}
-            <span className="text-xs font-normal text-slate-400">
+            <span className="text-xs font-normal text-[#A6A19A]">
               / {transactions.length}
             </span>
+          </div>
+          <span className="text-[11px] text-[#A6A19A] font-medium block mt-0.5">
+            Matching active filters
           </span>
         </div>
 
-        <div className="p-4 bg-white rounded-2xl border border-slate-200/80 shadow-xs minimal-card">
-          <span className="block text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+        <div className="p-4 sm:p-5 bg-[#17171B] rounded-2xl border border-[#302B25] shadow-xs minimal-card">
+          <span className="block text-[11px] font-bold text-[#A6A19A] uppercase tracking-wider">
             Filtered Income
           </span>
-          <span className="text-xl sm:text-2xl font-black text-emerald-600 tracking-tight">
+          <div className="text-xl sm:text-2xl font-black text-[#2EB872] tracking-tight font-sans mt-1">
             +{formatINR(filteredIncome)}
+          </div>
+          <span className="text-[11px] text-[#2EB872]/80 font-medium block mt-0.5">
+            Total incoming funds
           </span>
         </div>
 
-        <div className="p-4 bg-white rounded-2xl border border-slate-200/80 shadow-xs minimal-card">
-          <span className="block text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+        <div className="p-4 sm:p-5 bg-[#17171B] rounded-2xl border border-[#302B25] shadow-xs minimal-card">
+          <span className="block text-[11px] font-bold text-[#A6A19A] uppercase tracking-wider">
             Filtered Expenses
           </span>
-          <span className="text-xl sm:text-2xl font-black text-rose-600 tracking-tight">
+          <div className="text-xl sm:text-2xl font-black text-[#E05263] tracking-tight font-sans mt-1">
             -{formatINR(filteredExpense)}
+          </div>
+          <span className="text-[11px] text-[#E05263]/80 font-medium block mt-0.5">
+            Total outgoing spend
           </span>
         </div>
 
-        <div className="p-4 bg-white rounded-2xl border border-slate-200/80 shadow-xs minimal-card">
-          <span className="block text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+        <div className="p-4 sm:p-5 bg-[#17171B] rounded-2xl border border-[#302B25] shadow-xs minimal-card">
+          <span className="block text-[11px] font-bold text-[#A6A19A] uppercase tracking-wider">
             Filtered Net Flow
           </span>
-          <span
-            className={`text-xl sm:text-2xl font-black tracking-tight ${
-              filteredNet >= 0 ? 'text-slate-900' : 'text-rose-600'
+          <div
+            className={`text-xl sm:text-2xl font-black tracking-tight font-sans mt-1 ${
+              filteredNet >= 0 ? 'text-[#F5F1E8]' : 'text-[#E05263]'
             }`}
           >
             {formatINR(filteredNet)}
+          </div>
+          <span className="text-[11px] text-[#A6A19A] font-medium block mt-0.5">
+            Retained cash flow
           </span>
         </div>
       </div>
 
       {/* ── Main Ledger Card ───────────────────────────────────────── */}
-      <div className="animate-section-2 bg-white rounded-2xl border border-slate-200/80 p-5 sm:p-6 shadow-xs minimal-card space-y-5">
+      <div className="animate-section-2 bg-[#17171B] rounded-2xl border border-[#302B25] p-5 sm:p-6 shadow-xs minimal-card space-y-5">
         {/* Header Controls */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center border border-emerald-100">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[#302B25]">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="w-8 h-8 rounded-lg bg-[#D4AF72]/15 text-[#D4AF72] flex items-center justify-center border border-[#D4AF72]/30 shrink-0">
               <Receipt className="w-4 h-4" />
             </div>
-            <div>
-              <h2 className="text-base font-bold text-slate-900">
+            <div className="min-w-0">
+              <h2 className="text-base font-bold text-[#F5F1E8] truncate">
                 Transaction Register
               </h2>
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-[#A6A19A] truncate">
                 Manage, filter and export your complete transaction ledger
               </p>
             </div>
           </div>
 
           {/* Action Buttons */}
-          <div className="flex flex-wrap items-center gap-2.5 self-start sm:self-auto">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-2.5 self-start sm:self-auto shrink-0">
             <button
               type="button"
               onClick={() => setIsExportModalOpen(true)}
               disabled={transactions.length === 0}
-              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-xl shadow-xs transition cursor-pointer disabled:opacity-40"
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-[#1E1E23] hover:bg-[#25252B] active:bg-[#1E1E23] border border-[#302B25] hover:border-[#D4AF72]/40 text-[#F5F1E8] text-xs font-semibold rounded-xl transition cursor-pointer disabled:opacity-40 shrink-0 whitespace-nowrap shadow-xs"
             >
-              <FileDown className="w-3.5 h-3.5 text-slate-300" />
+              <FileDown className="w-3.5 h-3.5 text-[#D4AF72]" />
               <span>Export PDF</span>
             </button>
 
             <button
               type="button"
               onClick={() => setIsModalOpen(true)}
-              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow-xs transition cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#D4AF72] hover:bg-[#E0C28A] active:bg-[#B89455] text-[#0B0B0D] text-xs font-bold rounded-xl transition cursor-pointer shadow-xs shrink-0 whitespace-nowrap"
             >
-              <Plus className="w-3.5 h-3.5" />
+              <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
               <span>Add Transaction</span>
             </button>
           </div>
@@ -348,9 +446,9 @@ export default function TransactionsPage() {
         {/* Filter Controls Row */}
         <div className="space-y-3 pt-1">
           {/* Preset Timeframe Tabs */}
-          <div className="flex flex-wrap items-center gap-1.5 p-1 bg-slate-50/80 rounded-xl border border-slate-200/70 text-xs font-medium">
-            <span className="px-2 text-slate-400 font-bold flex items-center gap-1 text-[11px] uppercase tracking-wider">
-              <Clock className="w-3 h-3 text-slate-400" />
+          <div className="flex flex-wrap items-center gap-1.5 p-1 bg-[#131316] rounded-xl border border-[#302B25] text-xs font-medium">
+            <span className="px-2 text-[#A6A19A] font-bold flex items-center gap-1 text-[11px] uppercase tracking-wider shrink-0">
+              <Clock className="w-3 h-3 text-[#D4AF72]" />
               Period:
             </span>
             {[
@@ -364,10 +462,10 @@ export default function TransactionsPage() {
               <button
                 key={item.id}
                 onClick={() => setDateFilter(item.id)}
-                className={`px-3 py-1 rounded-lg transition-all text-xs font-semibold cursor-pointer ${
+                className={`px-3 py-1 rounded-lg transition-all text-xs font-semibold cursor-pointer shrink-0 ${
                   dateFilter === item.id
-                    ? 'bg-indigo-600 text-white shadow-xs'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
+                    ? 'bg-[#D4AF72]/15 text-[#D4AF72] border border-[#D4AF72]/30 font-bold shadow-xs'
+                    : 'text-[#A6A19A] hover:text-[#F5F1E8] hover:bg-[#1E1E23] border border-transparent'
                 }`}
               >
                 {item.label}
@@ -377,27 +475,27 @@ export default function TransactionsPage() {
 
           {/* Custom Date Range */}
           {dateFilter === 'custom' && (
-            <div className="p-3 bg-indigo-50/40 rounded-xl border border-indigo-100 flex flex-wrap items-center gap-3 text-xs animate-fade-in">
+            <div className="p-3 bg-[#131316] rounded-xl border border-[#302B25] flex flex-wrap items-center gap-3 text-xs animate-fade-in">
               <div className="flex items-center gap-2">
-                <CalendarRange className="w-4 h-4 text-indigo-600" />
-                <span className="font-bold text-slate-700">Date Range:</span>
+                <CalendarRange className="w-4 h-4 text-[#D4AF72]" />
+                <span className="font-bold text-[#F5F1E8]">Date Range:</span>
               </div>
               <div className="flex items-center gap-2">
-                <label className="text-slate-500 font-medium">From:</label>
+                <label className="text-[#A6A19A] font-medium">From:</label>
                 <input
                   type="date"
                   value={customStartDate}
                   onChange={(e) => setCustomStartDate(e.target.value)}
-                  className="px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-slate-800 text-xs font-medium focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none"
+                  className="px-2.5 py-1.5 bg-[#1E1E23] border border-[#302B25] rounded-lg text-[#F5F1E8] text-xs font-medium focus:border-[#D4AF72] focus:ring-1 focus:ring-[#D4AF72]/30 outline-none"
                 />
               </div>
               <div className="flex items-center gap-2">
-                <label className="text-slate-500 font-medium">To:</label>
+                <label className="text-[#A6A19A] font-medium">To:</label>
                 <input
                   type="date"
                   value={customEndDate}
                   onChange={(e) => setCustomEndDate(e.target.value)}
-                  className="px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-slate-800 text-xs font-medium focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none"
+                  className="px-2.5 py-1.5 bg-[#1E1E23] border border-[#302B25] rounded-lg text-[#F5F1E8] text-xs font-medium focus:border-[#D4AF72] focus:ring-1 focus:ring-[#D4AF72]/30 outline-none"
                 />
               </div>
               {(customStartDate || customEndDate) && (
@@ -406,7 +504,7 @@ export default function TransactionsPage() {
                     setCustomStartDate('');
                     setCustomEndDate('');
                   }}
-                  className="text-[11px] font-bold text-rose-600 hover:underline flex items-center gap-1 cursor-pointer"
+                  className="text-[11px] font-bold text-[#E05263] hover:underline flex items-center gap-1 cursor-pointer"
                 >
                   <X className="w-3 h-3" /> Clear Range
                 </button>
@@ -414,64 +512,85 @@ export default function TransactionsPage() {
             </div>
           )}
 
-          {/* Search, Type, Category, Payment Grid */}
+          {/* Search, Type, Group, Category, Payment Grid (Responsive 12-col) */}
           <div className="grid grid-cols-1 sm:grid-cols-12 gap-2.5">
             {/* Search Box */}
-            <div className="sm:col-span-4 relative">
-              <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+            <div className="sm:col-span-4 lg:col-span-3 relative">
+              <Search className="w-4 h-4 text-[#6B665F] absolute left-3.5 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
-                placeholder="Search title, category, remark..."
+                placeholder="Search ledger..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-full pl-9 pr-3.5 py-2 text-xs bg-slate-50/80 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition text-slate-800 placeholder:text-slate-400 font-medium"
+                className="w-full pl-9 pr-3.5 py-2 text-xs bg-[#131316] border border-[#302B25] rounded-xl focus:bg-[#17171B] focus:outline-none focus:border-[#D4AF72]/60 focus:ring-1 focus:ring-[#D4AF72]/30 transition text-[#F5F1E8] placeholder:text-[#6B665F] font-medium"
               />
             </div>
 
             {/* Type Filter */}
-            <div className="sm:col-span-3 inline-flex items-center bg-slate-100 p-1 rounded-xl text-xs font-semibold border border-slate-200/60">
+            <div className="sm:col-span-3 lg:col-span-2 inline-flex items-center bg-[#131316] p-1 rounded-xl text-xs font-semibold border border-[#302B25]">
               <button
                 onClick={() => setFilterType('all')}
-                className={`flex-1 py-1.5 rounded-lg text-center transition-all ${
+                className={`flex-1 py-1.5 rounded-lg text-center transition-all cursor-pointer ${
                   filterType === 'all'
-                    ? 'bg-white text-slate-900 shadow-xs'
-                    : 'text-slate-600 hover:text-slate-900'
+                    ? 'bg-[#1E1E23] text-[#F5F1E8] border border-[#302B25] shadow-xs'
+                    : 'text-[#A6A19A] hover:text-[#F5F1E8]'
                 }`}
               >
                 All
               </button>
               <button
                 onClick={() => setFilterType('income')}
-                className={`flex-1 py-1.5 rounded-lg text-center transition-all ${
+                className={`flex-1 py-1.5 rounded-lg text-center transition-all cursor-pointer ${
                   filterType === 'income'
-                    ? 'bg-white text-emerald-600 shadow-xs'
-                    : 'text-slate-600 hover:text-emerald-600'
+                    ? 'bg-[#2EB872]/15 text-[#2EB872] border border-[#2EB872]/30 shadow-xs'
+                    : 'text-[#A6A19A] hover:text-[#2EB872]'
                 }`}
               >
-                Income
+                In
               </button>
               <button
                 onClick={() => setFilterType('expense')}
-                className={`flex-1 py-1.5 rounded-lg text-center transition-all ${
+                className={`flex-1 py-1.5 rounded-lg text-center transition-all cursor-pointer ${
                   filterType === 'expense'
-                    ? 'bg-white text-rose-600 shadow-xs'
-                    : 'text-slate-600 hover:text-rose-600'
+                    ? 'bg-[#E05263]/15 text-[#E05263] border border-[#E05263]/30 shadow-xs'
+                    : 'text-[#A6A19A] hover:text-[#E05263]'
                 }`}
               >
-                Expense
+                Out
               </button>
             </div>
 
+            {/* Group Filter Dropdown */}
+            <div className="sm:col-span-2 lg:col-span-2">
+              <select
+                value={selectedGroupFilter}
+                onChange={(e) => setSelectedGroupFilter(e.target.value)}
+                className="w-full px-3 py-2 text-xs bg-[#131316] border border-[#302B25] rounded-xl focus:bg-[#17171B] focus:outline-none focus:border-[#D4AF72]/60 focus:ring-1 focus:ring-[#D4AF72]/30 transition text-[#F5F1E8] font-medium cursor-pointer"
+              >
+                <option value="all">All Groups</option>
+                <option value="personal">Personal Only</option>
+                {groups.length > 0 && (
+                  <optgroup label="Expense Groups">
+                    {groups.map((grp) => (
+                      <option key={grp._id} value={grp._id} className="bg-[#17171B] text-[#F5F1E8]">
+                        {grp.title}
+                      </option>
+                    ))}
+                  </optgroup>
+                )}
+              </select>
+            </div>
+
             {/* Category Dropdown */}
-            <div className="sm:col-span-2">
+            <div className="sm:col-span-3 lg:col-span-2">
               <select
                 value={selectedCategory}
                 onChange={(e) => setSelectedCategory(e.target.value)}
-                className="w-full px-3 py-2 text-xs bg-slate-50/80 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition text-slate-800 font-medium cursor-pointer"
+                className="w-full px-3 py-2 text-xs bg-[#131316] border border-[#302B25] rounded-xl focus:bg-[#17171B] focus:outline-none focus:border-[#D4AF72]/60 focus:ring-1 focus:ring-[#D4AF72]/30 transition text-[#F5F1E8] font-medium cursor-pointer"
               >
                 <option value="all">All Categories</option>
                 {allCategories.map((cat) => (
-                  <option key={cat} value={cat}>
+                  <option key={cat} value={cat} className="bg-[#17171B] text-[#F5F1E8]">
                     {cat}
                   </option>
                 ))}
@@ -479,15 +598,15 @@ export default function TransactionsPage() {
             </div>
 
             {/* Payment Method Dropdown */}
-            <div className="sm:col-span-2">
+            <div className="sm:col-span-3 lg:col-span-2">
               <select
                 value={selectedPaymentMethod}
                 onChange={(e) => setSelectedPaymentMethod(e.target.value)}
-                className="w-full px-3 py-2 text-xs bg-slate-50/80 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition text-slate-800 font-medium cursor-pointer"
+                className="w-full px-3 py-2 text-xs bg-[#131316] border border-[#302B25] rounded-xl focus:bg-[#17171B] focus:outline-none focus:border-[#D4AF72]/60 focus:ring-1 focus:ring-[#D4AF72]/30 transition text-[#F5F1E8] font-medium cursor-pointer"
               >
                 <option value="all">All Channels</option>
                 {PAYMENT_METHODS.map((method) => (
-                  <option key={method} value={method}>
+                  <option key={method} value={method} className="bg-[#17171B] text-[#F5F1E8]">
                     {method}
                   </option>
                 ))}
@@ -495,17 +614,17 @@ export default function TransactionsPage() {
             </div>
 
             {/* Reset Filter Button */}
-            <div className="sm:col-span-1 flex items-center">
+            <div className="sm:col-span-2 lg:col-span-1 flex items-center justify-end">
               {hasActiveFilters ? (
                 <button
                   onClick={clearFilters}
-                  className="w-full py-2 text-[11px] font-bold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-xl transition text-center cursor-pointer"
+                  className="w-full py-2 px-2 text-[11px] font-bold text-[#D4AF72] bg-[#D4AF72]/10 hover:bg-[#D4AF72]/20 border border-[#D4AF72]/25 rounded-xl transition text-center cursor-pointer whitespace-nowrap shrink-0"
                   title="Clear all filters"
                 >
                   Reset
                 </button>
               ) : (
-                <div className="hidden sm:flex items-center justify-center w-full text-slate-300">
+                <div className="hidden sm:flex items-center justify-center w-full text-[#6B665F]">
                   <SlidersHorizontal className="w-4 h-4" />
                 </div>
               )}
@@ -513,181 +632,265 @@ export default function TransactionsPage() {
           </div>
         </div>
 
-        {/* Ledger Content */}
-        {loading ? (
-          <div className="space-y-3 pt-2">
-            <TableRowSkeleton />
-            <TableRowSkeleton />
-            <TableRowSkeleton />
-            <TableRowSkeleton />
-          </div>
-        ) : filtered.length === 0 ? (
-          <div className="text-center py-14 px-4 border border-dashed border-slate-200 rounded-2xl bg-slate-50/40">
-            <div className="w-11 h-11 rounded-xl bg-slate-100 text-slate-400 flex items-center justify-center mx-auto mb-3">
-              <Receipt className="w-5 h-5" />
+        {/* ── Transactions Table List ─────────────────────────────────── */}
+        <div className="pt-2">
+          {loading ? (
+            <div className="space-y-3">
+              <TableRowSkeleton />
+              <TableRowSkeleton />
+              <TableRowSkeleton />
+              <TableRowSkeleton />
             </div>
-            <p className="text-sm font-bold text-slate-700">No transactions found</p>
-            <p className="text-xs text-slate-500 max-w-sm mx-auto mt-1 leading-relaxed">
-              {transactions.length === 0
-                ? 'Your transaction register is currently empty. Click "Add Transaction" to record your first entry.'
-                : 'No entries match your active filter criteria. Try choosing "All Time" or resetting your filters.'}
-            </p>
-            {hasActiveFilters && (
-              <button
-                onClick={clearFilters}
-                className="mt-3.5 inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition cursor-pointer"
-              >
-                Clear All Filters
-              </button>
-            )}
-          </div>
-        ) : (
-          <div className="space-y-5 pt-2">
-            {groupedTransactions.map((group) => (
-              <div key={group.dateKey} className="space-y-2">
-                {/* Date Group Header */}
-                <div className="flex items-center justify-between pb-1.5 border-b border-slate-100">
-                  <div className="flex items-center gap-2">
-                    <div className="w-1.5 h-1.5 rounded-full bg-indigo-600" />
-                    <span className="text-xs font-bold text-slate-900 tracking-tight flex items-center gap-2">
-                      {group.label}
-                      {group.label !== 'Today' && group.label !== 'Yesterday' && (
-                        <span className="text-[11px] font-normal text-slate-400">
-                          ({group.fullDate.toLocaleDateString('en-IN', { weekday: 'short' })})
-                        </span>
-                      )}
-                    </span>
-                    <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-slate-100 text-slate-600">
-                      {group.items.length}
-                    </span>
-                  </div>
+          ) : filtered.length === 0 ? (
+            <div className="text-center py-12 px-4 border border-dashed border-[#302B25] rounded-2xl bg-[#131316]/50">
+              <Receipt className="w-8 h-8 text-[#6B665F] mx-auto mb-2" />
+              <p className="text-xs font-bold text-[#F5F1E8]">No records match your criteria</p>
+              <p className="text-[11px] text-[#A6A19A] max-w-xs mx-auto mt-1">
+                Try modifying your search keywords, period, category, or payment method filters.
+              </p>
+              {hasActiveFilters && (
+                <button
+                  onClick={clearFilters}
+                  className="mt-3.5 inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-[#D4AF72] bg-[#D4AF72]/10 hover:bg-[#D4AF72]/20 border border-[#D4AF72]/25 rounded-lg transition cursor-pointer"
+                >
+                  Clear All Filters
+                </button>
+              )}
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <div className="overflow-x-auto rounded-xl border border-[#302B25]">
+                <table className="w-full text-left border-collapse min-w-[620px]">
+                  <thead>
+                    <tr className="bg-[#131316] text-[#A6A19A] border-b border-[#302B25] text-[11px] font-bold uppercase tracking-wider">
+                      <th className="py-3 px-4">Transaction / Group</th>
+                      <th className="py-3 px-4 hidden md:table-cell">Category</th>
+                      <th className="py-3 px-4 hidden sm:table-cell">Payment Channel</th>
+                      <th className="py-3 px-4 text-right">Amount</th>
+                      <th className="py-3 px-3 text-center w-12">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[#302B25]/60 text-xs">
+                    {groupedTransactions.map((group) => (
+                      <tr key={`group-${group.dateKey}`} className="contents">
+                        {/* Date Group Subheader */}
+                        <td colSpan={5} className="bg-[#131316]/90 px-4 py-2 border-y border-[#302B25]">
+                          <div className="flex items-center justify-between text-[11px] font-bold text-[#A6A19A]">
+                            <span className="flex items-center gap-1.5 text-[#F5F1E8]">
+                              <span className="w-1.5 h-1.5 rounded-full bg-[#D4AF72]" />
+                              <span>{group.label}</span>
+                              <span className="text-[#6B665F] font-normal">
+                                ({group.fullDate.toLocaleDateString('en-IN', { weekday: 'short' })})
+                              </span>
+                            </span>
+                            <div className="flex items-center gap-3">
+                              {group.dayTotalIncome > 0 && (
+                                <span className="text-[#2EB872]">
+                                  +{formatINR(group.dayTotalIncome)}
+                                </span>
+                              )}
+                              {group.dayTotalExpense > 0 && (
+                                <span className="text-[#E05263]">
+                                  -{formatINR(group.dayTotalExpense)}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </td>
 
-                  <div className="flex items-center gap-3 text-[11px] font-semibold text-slate-500">
-                    {group.dayTotalIncome > 0 && (
-                      <span className="text-emerald-600 font-bold">
-                        +{formatINR(group.dayTotalIncome)}
-                      </span>
-                    )}
-                    {group.dayTotalExpense > 0 && (
-                      <span className="text-rose-600 font-bold">
-                        -{formatINR(group.dayTotalExpense)}
-                      </span>
-                    )}
-                  </div>
-                </div>
+                        {/* Grouped Transactions Rows */}
+                        {group.items.map((tx) => {
+                          const isIncome = tx.type === 'income';
 
-                {/* Table */}
-                <div className="overflow-x-auto -mx-5 sm:-mx-6 px-5 sm:px-6">
-                  <table className="w-full text-left border-collapse min-w-[620px]">
-                    <tbody className="divide-y divide-slate-100 text-sm">
-                      {group.items.map((tx) => {
-                        const isIncome = tx.type === 'income';
-                        const txDate = new Date(tx.date || tx.createdAt);
-                        const formattedTime = txDate.toLocaleTimeString('en-IN', {
-                          hour: '2-digit',
-                          minute: '2-digit',
-                        });
-                        const paymentMethod = tx.paymentMethod || 'Other';
-                        const badgeStyle = getPaymentBadge(paymentMethod);
+                          return (
+                            <tr
+                              key={tx._id}
+                              className="hover:bg-[#1E1E23]/60 transition-colors group"
+                            >
+                              <td className="py-3.5 px-4">
+                                <div className="flex items-center gap-3">
+                                  <div
+                                    className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 border ${
+                                      isIncome
+                                        ? 'bg-[#2EB872]/10 text-[#2EB872] border-[#2EB872]/25'
+                                        : 'bg-[#E05263]/10 text-[#E05263] border-[#E05263]/25'
+                                    }`}
+                                  >
+                                    {isIncome ? (
+                                      <ArrowUpRight className="w-4 h-4" />
+                                    ) : (
+                                      <ArrowDownLeft className="w-4 h-4" />
+                                    )}
+                                  </div>
+                                  <div className="min-w-0">
+                                    <p className="font-bold text-[#F5F1E8] truncate text-xs sm:text-sm">
+                                      {tx.title}
+                                    </p>
+                                    <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                                      {tx.note && (
+                                        <span className="text-[11px] text-[#A6A19A] truncate max-w-[200px]">
+                                          {tx.note}
+                                        </span>
+                                      )}
 
-                        return (
-                          <tr
-                            key={tx._id}
-                            className="group hover:bg-slate-50/80 transition-colors duration-150"
-                          >
-                            <td className="py-2.5 pl-1 max-w-[260px]">
-                              <div className="flex items-center gap-3">
-                                <div
-                                  className={`w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 transition-transform group-hover:scale-105 ${
-                                    isIncome
-                                      ? 'bg-emerald-50 text-emerald-600 border border-emerald-200/70'
-                                      : 'bg-rose-50 text-rose-600 border border-rose-200/70'
+                                      {/* Group Badge & Reassign Dropdown */}
+                                      <div className="flex items-center gap-1">
+                                        {tx.group ? (
+                                          <span
+                                            className="inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.2 rounded border"
+                                            style={{
+                                              backgroundColor: tx.group.color ? `${tx.group.color}15` : '#D4AF7215',
+                                              color: tx.group.color || '#D4AF72',
+                                              borderColor: tx.group.color ? `${tx.group.color}35` : '#D4AF7235',
+                                            }}
+                                          >
+                                            <Users className="w-2.5 h-2.5" />
+                                            {tx.group.title}
+                                          </span>
+                                        ) : (
+                                          <span className="text-[10px] text-[#6B665F]">Personal</span>
+                                        )}
+
+                                        {/* Quick group reassignment select */}
+                                        <select
+                                          value={tx.group?._id || ''}
+                                          onChange={(e) => handleReassignGroup(tx._id, e.target.value)}
+                                          disabled={reassigningId === tx._id}
+                                          title="Change group assignment"
+                                          className="opacity-0 group-hover:opacity-100 transition-opacity text-[10px] bg-[#1E1E23] border border-[#302B25] rounded px-1 py-0.5 text-[#A6A19A] hover:text-[#F5F1E8] cursor-pointer"
+                                        >
+                                          <option value="">Move to Personal</option>
+                                          {groups.map((g) => (
+                                            <option key={g._id} value={g._id} className="bg-[#17171B] text-[#F5F1E8]">
+                                              Assign: {g.title}
+                                            </option>
+                                          ))}
+                                        </select>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+                              </td>
+
+                              <td className="py-3.5 px-4 hidden md:table-cell">
+                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#1E1E23] text-[#F5F1E8] border border-[#302B25] text-xs font-medium">
+                                  <Tag className="w-3 h-3 text-[#D4AF72]" />
+                                  {tx.category || 'General'}
+                                </span>
+                              </td>
+
+                              <td className="py-3.5 px-4 hidden sm:table-cell">
+                                <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-xs font-semibold ${getPaymentBadge(tx.paymentMethod)}`}>
+                                  <CreditCard className="w-3 h-3 opacity-80" />
+                                  <span>{tx.paymentMethod || 'Other'}</span>
+                                </span>
+                              </td>
+
+                              <td className="py-3.5 px-4 text-right">
+                                <span
+                                  className={`font-black text-xs sm:text-sm font-sans tracking-tight ${
+                                    isIncome ? 'text-[#2EB872]' : 'text-[#F5F1E8]'
                                   }`}
                                 >
-                                  {isIncome ? (
-                                    <ArrowUpRight className="w-3.5 h-3.5" />
-                                  ) : (
-                                    <ArrowDownLeft className="w-3.5 h-3.5" />
-                                  )}
-                                </div>
-                                <div className="min-w-0">
-                                  <p className="font-bold text-slate-900 truncate text-xs sm:text-sm">
-                                    {tx.title}
-                                  </p>
-                                  {tx.note && (
-                                    <p className="text-[11px] text-slate-500 truncate max-w-xs font-normal">
-                                      {tx.note}
-                                    </p>
-                                  )}
-                                </div>
-                              </div>
-                            </td>
+                                  {isIncome ? '+' : '-'}
+                                  {formatINR(tx.amount)}
+                                </span>
+                              </td>
 
-                            <td className="py-2.5 px-3">
-                              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg text-xs font-semibold bg-slate-100/90 text-slate-700">
-                                <Tag className="w-3 h-3 text-slate-400" />
-                                {tx.category || 'General'}
-                              </span>
-                            </td>
-
-                            <td className="py-2.5 px-3">
-                              <span
-                                className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold border ${badgeStyle}`}
-                              >
-                                <CreditCard className="w-2.5 h-2.5 opacity-70" />
-                                {paymentMethod}
-                              </span>
-                            </td>
-
-                            <td className="py-2.5 px-3">
-                              <span className="inline-flex items-center gap-1.5 text-xs text-slate-400 font-medium whitespace-nowrap">
-                                <Clock className="w-3 h-3 text-slate-300" />
-                                {formattedTime}
-                              </span>
-                            </td>
-
-                            <td className="py-2.5 px-3 text-right">
-                              <span
-                                className={`font-extrabold text-sm whitespace-nowrap font-sans ${
-                                  isIncome ? 'text-emerald-600' : 'text-slate-900'
-                                }`}
-                              >
-                                {isIncome ? '+' : '-'}
-                                {formatINR(tx.amount)}
-                              </span>
-                            </td>
-
-                            <td className="py-2.5 pr-1 text-right">
-                              <button
-                                onClick={() => handleDelete(tx._id)}
-                                disabled={deletingId === tx._id}
-                                title="Delete transaction"
-                                className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors disabled:opacity-40 cursor-pointer"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </button>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
+                              <td className="py-3.5 px-3 text-center">
+                                <button
+                                  onClick={() => handleDelete(tx._id)}
+                                  disabled={deletingId === tx._id}
+                                  title="Delete transaction"
+                                  className="p-1.5 text-[#6B665F] hover:text-[#E05263] hover:bg-[#E05263]/10 rounded-lg transition-colors border border-transparent hover:border-[#E05263]/25 disabled:opacity-40 cursor-pointer"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
-            ))}
-          </div>
-        )}
+
+              {/* ── Polished Obsidian Gold Pagination Bar ──────────────── */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2 text-xs text-[#A6A19A]">
+                <div>
+                  Showing{' '}
+                  <span className="font-bold text-[#F5F1E8]">{startIndex + 1}</span> to{' '}
+                  <span className="font-bold text-[#F5F1E8]">
+                    {Math.min(startIndex + PAGE_SIZE, filtered.length)}
+                  </span>{' '}
+                  of <span className="font-bold text-[#F5F1E8]">{filtered.length}</span> transactions
+                </div>
+
+                {totalPages > 1 && (
+                  <div className="flex items-center gap-1.5 self-center sm:self-auto">
+                    <button
+                      type="button"
+                      onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                      disabled={safeCurrentPage === 1}
+                      className="px-2.5 py-1.5 bg-[#1E1E23] hover:bg-[#25252B] active:bg-[#1E1E23] text-[#F5F1E8] border border-[#302B25] rounded-xl transition disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1 font-semibold cursor-pointer"
+                    >
+                      <ChevronLeft className="w-3.5 h-3.5" />
+                      <span className="hidden sm:inline">Previous</span>
+                    </button>
+
+                    <div className="flex items-center gap-1">
+                      {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => (
+                        <button
+                          key={pageNum}
+                          onClick={() => setCurrentPage(pageNum)}
+                          className={`w-7 h-7 rounded-lg text-xs font-bold transition flex items-center justify-center cursor-pointer ${
+                            safeCurrentPage === pageNum
+                              ? 'bg-[#D4AF72] text-[#0B0B0D] shadow-xs'
+                              : 'bg-[#131316] text-[#A6A19A] hover:text-[#F5F1E8] hover:bg-[#1E1E23] border border-[#302B25]'
+                          }`}
+                        >
+                          {pageNum}
+                        </button>
+                      ))}
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                      disabled={safeCurrentPage === totalPages}
+                      className="px-2.5 py-1.5 bg-[#1E1E23] hover:bg-[#25252B] active:bg-[#1E1E23] text-[#F5F1E8] border border-[#302B25] rounded-xl transition disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1 font-semibold cursor-pointer"
+                    >
+                      <span className="hidden sm:inline">Next</span>
+                      <ChevronRight className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
-      {/* ── Export PDF Modal ─────────────────────────────────────── */}
+      {/* ── Global Export PDF Modal Connected with active filters ── */}
       <ExportPdfModal
         isOpen={isExportModalOpen}
         onClose={() => setIsExportModalOpen(false)}
         allTransactions={transactions}
-        filteredTransactions={filtered}
+        groups={groups}
+        user={user}
+        defaultPreset={exportPreset}
+        initialStartDate={exportStartDate}
+        initialEndDate={exportEndDate}
+        pageFilters={{
+          type: filterType,
+          category: selectedCategory,
+          paymentMethod: selectedPaymentMethod,
+          search: search,
+          group: selectedGroupFilter,
+        }}
         currentFilterLabel={currentFilterLabel}
         filterDetails={filterDetailsText}
-        user={user}
       />
     </div>
   );

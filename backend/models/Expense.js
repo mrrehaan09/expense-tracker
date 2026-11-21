@@ -36,6 +36,12 @@ const expenseSchema = new mongoose.Schema(
       required: true,
       index: true,
     },
+    group: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Group',
+      default: null,
+      index: true,
+    },
     title: {
       type: String,
       required: [true, 'Title is required'],

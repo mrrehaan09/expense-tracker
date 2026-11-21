@@ -7,6 +7,7 @@ import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import DashboardPage from './pages/DashboardPage';
 import TransactionsPage from './pages/TransactionsPage';
+import GroupsPage from './pages/GroupsPage';
 import AnalyticsPage from './pages/AnalyticsPage';
 
 export default function App() {
@@ -30,6 +31,7 @@ export default function App() {
           >
             <Route path="/dashboard" element={<DashboardPage />} />
             <Route path="/transactions" element={<TransactionsPage />} />
+            <Route path="/groups" element={<GroupsPage />} />
             <Route path="/analytics" element={<AnalyticsPage />} />
           </Route>
 

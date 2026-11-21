@@ -29,25 +29,25 @@ import {
 import { formatINR, formatCompactINR } from '../utils/formatters';
 
 const PIE_COLORS = [
-  '#4f46e5', // Indigo
-  '#059669', // Emerald
-  '#d97706', // Amber
-  '#0284c7', // Sky
-  '#db2777', // Pink
-  '#7c3aed', // Violet
-  '#ea580c', // Orange
-  '#0d9488', // Teal
-  '#e11d48', // Rose
-  '#475569', // Slate
+  '#D4AF72', // Primary Gold
+  '#2EB872', // Emerald
+  '#E05263', // Rose
+  '#38BDF8', // Sky
+  '#F59E0B', // Amber
+  '#A78BFA', // Violet
+  '#2DD4BF', // Teal
+  '#B89455', // Secondary Gold
+  '#FB7185', // Coral
+  '#64748B', // Slate
 ];
 
-// Custom Tooltip for Recharts
+// Custom Tooltip for Recharts matching Obsidian Gold
 function AnalyticsTooltip({ active, payload, label }) {
   if (active && payload && payload.length) {
     return (
-      <div className="bg-slate-900 text-white p-3 rounded-xl shadow-lg border border-slate-800 text-xs space-y-1.5 min-w-[150px]">
+      <div className="bg-[#1E1E23] text-[#F5F1E8] p-3 rounded-xl shadow-2xl border border-[#302B25] text-xs space-y-1.5 min-w-[150px]">
         {label && (
-          <div className="text-slate-300 font-semibold border-b border-slate-800 pb-1">
+          <div className="text-[#A6A19A] font-semibold border-b border-[#302B25] pb-1">
             {label}
           </div>
         )}
@@ -58,11 +58,11 @@ function AnalyticsTooltip({ active, payload, label }) {
                 className="w-2 h-2 rounded-full"
                 style={{ backgroundColor: item.color || item.payload?.fill }}
               />
-              <span className="capitalize text-slate-300 text-[11px]">
+              <span className="capitalize text-[#A6A19A] text-[11px]">
                 {item.name}:
               </span>
             </span>
-            <span className="font-bold text-white tracking-tight">
+            <span className="font-bold text-[#F5F1E8] tracking-tight">
               {formatINR(item.value)}
             </span>
           </div>
@@ -144,18 +144,18 @@ export default function AnalyticsPage() {
   return (
     <div className="space-y-6">
       {/* ── Page Header Banner ────────────────────────────────────── */}
-      <div className="animate-section-1 bg-white rounded-2xl p-5 sm:p-6 border border-slate-200/80 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4 minimal-card">
+      <div className="animate-section-1 bg-[#17171B] rounded-2xl p-5 sm:p-6 border border-[#302B25] shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4 minimal-card">
         <div className="space-y-1">
           <div className="flex items-center gap-2">
-            <h2 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
+            <h2 className="text-xl sm:text-2xl font-bold text-[#F5F1E8] tracking-tight">
               Financial Analytics & Trends
             </h2>
-            <span className="text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-100 px-2 py-0.5 rounded-full flex items-center gap-1">
-              <TrendingUp className="w-3 h-3 text-emerald-600" />
+            <span className="text-xs font-semibold text-[#2EB872] bg-[#2EB872]/15 border border-[#2EB872]/30 px-2.5 py-0.5 rounded-full flex items-center gap-1">
+              <TrendingUp className="w-3 h-3 text-[#2EB872]" />
               Real MongoDB Sync
             </span>
           </div>
-          <p className="text-slate-500 text-xs sm:text-sm">
+          <p className="text-[#A6A19A] text-xs sm:text-sm">
             Deep-dive visual analysis of cash flows, category spending distributions, and payment habits.
           </p>
         </div>
@@ -163,15 +163,15 @@ export default function AnalyticsPage() {
         <button
           onClick={() => setIsExportModalOpen(true)}
           disabled={!hasData}
-          className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-xl shadow-xs transition cursor-pointer disabled:opacity-40 self-start sm:self-auto"
+          className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-[#1E1E23] hover:bg-[#25252B] active:bg-[#1E1E23] text-[#F5F1E8] text-xs font-semibold rounded-xl shadow-xs transition cursor-pointer border border-[#302B25] hover:border-[#D4AF72]/40 disabled:opacity-40 self-start sm:self-auto shrink-0"
         >
-          <FileDown className="w-3.5 h-3.5 text-slate-300" />
+          <FileDown className="w-3.5 h-3.5 text-[#D4AF72]" />
           <span>Export Analytics PDF</span>
         </button>
       </div>
 
       {/* ── Executive Financial Metrics (4 Cards) ─────────────────── */}
-      <div className="animate-section-2 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
+      <div className="animate-section-2 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5 items-stretch">
         {loading ? (
           <>
             <StatCardSkeleton />
@@ -181,75 +181,75 @@ export default function AnalyticsPage() {
           </>
         ) : (
           <>
-            <div className="bg-white rounded-2xl p-5 sm:p-6 border border-slate-200/80 shadow-xs minimal-card flex flex-col justify-between">
+            <div className="bg-[#17171B] rounded-2xl p-5 sm:p-6 border border-[#302B25] hover:border-[#453E35] transition-all duration-200 shadow-xs minimal-card flex flex-col justify-between">
               <div className="flex items-center justify-between mb-3">
-                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                <span className="text-[11px] font-bold text-[#A6A19A] uppercase tracking-wider">
                   Total Income
                 </span>
-                <div className="w-9 h-9 rounded-xl flex items-center justify-center bg-emerald-50 text-emerald-600 border border-emerald-100">
+                <div className="w-9 h-9 rounded-xl flex items-center justify-center bg-[#2EB872]/15 text-[#2EB872] border border-[#2EB872]/30">
                   <ArrowUpRight className="w-4 h-4" />
                 </div>
               </div>
               <div className="space-y-1">
-                <div className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+                <div className="text-2xl sm:text-3xl font-black text-[#F5F1E8] tracking-tight font-sans">
                   {formatINR(summary.totalIncome)}
                 </div>
-                <p className="text-xs text-slate-500">Gross recorded inflows</p>
+                <p className="text-xs text-[#A6A19A]">Gross recorded inflows</p>
               </div>
             </div>
 
-            <div className="bg-white rounded-2xl p-5 sm:p-6 border border-slate-200/80 shadow-xs minimal-card flex flex-col justify-between">
+            <div className="bg-[#17171B] rounded-2xl p-5 sm:p-6 border border-[#302B25] hover:border-[#453E35] transition-all duration-200 shadow-xs minimal-card flex flex-col justify-between">
               <div className="flex items-center justify-between mb-3">
-                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                <span className="text-[11px] font-bold text-[#A6A19A] uppercase tracking-wider">
                   Total Outflow
                 </span>
-                <div className="w-9 h-9 rounded-xl flex items-center justify-center bg-rose-50 text-rose-600 border border-rose-100">
+                <div className="w-9 h-9 rounded-xl flex items-center justify-center bg-[#E05263]/15 text-[#E05263] border border-[#E05263]/30">
                   <ArrowDownLeft className="w-4 h-4" />
                 </div>
               </div>
               <div className="space-y-1">
-                <div className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+                <div className="text-2xl sm:text-3xl font-black text-[#E05263] tracking-tight font-sans">
                   {formatINR(summary.totalExpense)}
                 </div>
-                <p className="text-xs text-slate-500">Total recorded expenses</p>
+                <p className="text-xs text-[#A6A19A]">Total recorded expenses</p>
               </div>
             </div>
 
-            <div className="bg-white rounded-2xl p-5 sm:p-6 border border-slate-200/80 shadow-xs minimal-card flex flex-col justify-between">
+            <div className="bg-[#17171B] rounded-2xl p-5 sm:p-6 border border-[#302B25] hover:border-[#453E35] transition-all duration-200 shadow-xs minimal-card flex flex-col justify-between">
               <div className="flex items-center justify-between mb-3">
-                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                <span className="text-[11px] font-bold text-[#A6A19A] uppercase tracking-wider">
                   Net Savings
                 </span>
-                <div className="w-9 h-9 rounded-xl flex items-center justify-center bg-indigo-50 text-indigo-600 border border-indigo-100">
+                <div className="w-9 h-9 rounded-xl flex items-center justify-center bg-[#D4AF72]/15 text-[#D4AF72] border border-[#D4AF72]/30">
                   <Wallet className="w-4 h-4" />
                 </div>
               </div>
               <div className="space-y-1">
                 <div
-                  className={`text-2xl sm:text-3xl font-black tracking-tight ${
-                    summary.totalBalance >= 0 ? 'text-slate-900' : 'text-rose-600'
+                  className={`text-2xl sm:text-3xl font-black tracking-tight font-sans ${
+                    summary.totalBalance >= 0 ? 'text-[#2EB872]' : 'text-[#E05263]'
                   }`}
                 >
                   {formatINR(summary.totalBalance)}
                 </div>
-                <p className="text-xs text-slate-500">Retained cash flow</p>
+                <p className="text-xs text-[#A6A19A]">Retained cash flow</p>
               </div>
             </div>
 
-            <div className="bg-white rounded-2xl p-5 sm:p-6 border border-slate-200/80 shadow-xs minimal-card flex flex-col justify-between">
+            <div className="bg-[#17171B] rounded-2xl p-5 sm:p-6 border border-[#302B25] hover:border-[#453E35] transition-all duration-200 shadow-xs minimal-card flex flex-col justify-between">
               <div className="flex items-center justify-between mb-3">
-                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                <span className="text-[11px] font-bold text-[#A6A19A] uppercase tracking-wider">
                   Savings Rate
                 </span>
-                <div className="w-9 h-9 rounded-xl flex items-center justify-center bg-teal-50 text-teal-600 border border-teal-100">
+                <div className="w-9 h-9 rounded-xl flex items-center justify-center bg-[#38BDF8]/15 text-[#38BDF8] border border-[#38BDF8]/30">
                   <Percent className="w-4 h-4" />
                 </div>
               </div>
               <div className="space-y-1">
-                <div className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+                <div className="text-2xl sm:text-3xl font-black text-[#F5F1E8] tracking-tight font-sans">
                   {savingsRate}%
                 </div>
-                <p className="text-xs text-slate-500">Of total income saved</p>
+                <p className="text-xs text-[#A6A19A]">Of total income saved</p>
               </div>
             </div>
           </>
@@ -258,26 +258,26 @@ export default function AnalyticsPage() {
 
       {/* ── Main Charts Grid ──────────────────────────────────────── */}
       {!hasData && !loading ? (
-        <div className="text-center py-16 px-4 bg-white rounded-2xl border border-dashed border-slate-200">
-          <PieIcon className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-          <h3 className="text-base font-bold text-slate-800">
+        <div className="text-center py-16 px-4 bg-[#17171B] rounded-2xl border border-dashed border-[#302B25]">
+          <PieIcon className="w-12 h-12 text-[#6B665F] mx-auto mb-3" />
+          <h3 className="text-base font-bold text-[#F5F1E8]">
             No financial analytics available
           </h3>
-          <p className="text-xs text-slate-500 max-w-sm mx-auto mt-1 leading-relaxed">
+          <p className="text-xs text-[#A6A19A] max-w-sm mx-auto mt-1 leading-relaxed">
             Analytics require at least one transaction in your database. Add income or expenses to generate automated charts and breakdowns.
           </p>
         </div>
       ) : (
         <>
           {/* Chart Row 1: Income vs Expenses & Net Cash Flow Trend */}
-          <div className="animate-section-3 grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="animate-section-3 grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
             {/* Chart 1: Income vs Expense Monthly Comparative */}
-            <div className="bg-white rounded-2xl border border-slate-200/80 p-5 sm:p-6 shadow-xs minimal-card">
+            <div className="bg-[#17171B] rounded-2xl border border-[#302B25] p-5 sm:p-6 shadow-xs minimal-card flex flex-col justify-between">
               <div className="mb-5">
-                <h3 className="text-base font-bold text-slate-900">
+                <h3 className="text-base font-bold text-[#F5F1E8]">
                   Income vs. Expense Trend
                 </h3>
-                <p className="text-xs text-slate-500 mt-0.5">
+                <p className="text-xs text-[#A6A19A] mt-0.5">
                   Monthly comparative inflow and outflow performance
                 </p>
               </div>
@@ -292,17 +292,17 @@ export default function AnalyticsPage() {
                       margin={{ top: 10, right: 10, left: -10, bottom: 0 }}
                       barGap={6}
                     >
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#302B25" />
                       <XAxis
                         dataKey="month"
                         tickLine={false}
-                        axisLine={{ stroke: '#e2e8f0' }}
-                        tick={{ fill: '#64748b', fontSize: 11 }}
+                        axisLine={{ stroke: '#302B25' }}
+                        tick={{ fill: '#A6A19A', fontSize: 11 }}
                       />
                       <YAxis
                         tickLine={false}
                         axisLine={false}
-                        tick={{ fill: '#64748b', fontSize: 11 }}
+                        tick={{ fill: '#A6A19A', fontSize: 11 }}
                         tickFormatter={(val) => formatCompactINR(val)}
                       />
                       <Tooltip content={<AnalyticsTooltip />} />
@@ -310,19 +310,19 @@ export default function AnalyticsPage() {
                         verticalAlign="top"
                         align="right"
                         iconType="circle"
-                        wrapperStyle={{ paddingBottom: '12px', fontSize: '12px' }}
+                        wrapperStyle={{ paddingBottom: '12px', fontSize: '12px', color: '#F5F1E8' }}
                       />
                       <Bar
                         name="Income"
                         dataKey="income"
-                        fill="#10b981"
+                        fill="#2EB872"
                         radius={[4, 4, 0, 0]}
                         maxBarSize={28}
                       />
                       <Bar
                         name="Expenses"
                         dataKey="expense"
-                        fill="#f43f5e"
+                        fill="#E05263"
                         radius={[4, 4, 0, 0]}
                         maxBarSize={28}
                       />
@@ -333,12 +333,12 @@ export default function AnalyticsPage() {
             </div>
 
             {/* Chart 2: Net Savings & Cash Flow Trend (Area Chart) */}
-            <div className="bg-white rounded-2xl border border-slate-200/80 p-5 sm:p-6 shadow-xs minimal-card">
+            <div className="bg-[#17171B] rounded-2xl border border-[#302B25] p-5 sm:p-6 shadow-xs minimal-card flex flex-col justify-between">
               <div className="mb-5">
-                <h3 className="text-base font-bold text-slate-900">
+                <h3 className="text-base font-bold text-[#F5F1E8]">
                   Net Savings & Cash Flow
                 </h3>
-                <p className="text-xs text-slate-500 mt-0.5">
+                <p className="text-xs text-[#A6A19A] mt-0.5">
                   Monthly retained savings balance progression
                 </p>
               </div>
@@ -354,21 +354,21 @@ export default function AnalyticsPage() {
                     >
                       <defs>
                         <linearGradient id="colorNetSavings" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#4f46e5" stopOpacity={0.25} />
-                          <stop offset="95%" stopColor="#4f46e5" stopOpacity={0} />
+                          <stop offset="5%" stopColor="#D4AF72" stopOpacity={0.3} />
+                          <stop offset="95%" stopColor="#D4AF72" stopOpacity={0} />
                         </linearGradient>
                       </defs>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#302B25" />
                       <XAxis
                         dataKey="month"
                         tickLine={false}
-                        axisLine={{ stroke: '#e2e8f0' }}
-                        tick={{ fill: '#64748b', fontSize: 11 }}
+                        axisLine={{ stroke: '#302B25' }}
+                        tick={{ fill: '#A6A19A', fontSize: 11 }}
                       />
                       <YAxis
                         tickLine={false}
                         axisLine={false}
-                        tick={{ fill: '#64748b', fontSize: 11 }}
+                        tick={{ fill: '#A6A19A', fontSize: 11 }}
                         tickFormatter={(val) => formatCompactINR(val)}
                       />
                       <Tooltip content={<AnalyticsTooltip />} />
@@ -376,7 +376,7 @@ export default function AnalyticsPage() {
                         type="monotone"
                         name="Net Savings"
                         dataKey="netSavings"
-                        stroke="#4f46e5"
+                        stroke="#D4AF72"
                         strokeWidth={2}
                         fillOpacity={1}
                         fill="url(#colorNetSavings)"
@@ -389,25 +389,25 @@ export default function AnalyticsPage() {
           </div>
 
           {/* Chart Row 2: Category Breakdown (Donut) & Payment Channel Breakdown */}
-          <div className="animate-section-4 grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="animate-section-4 grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
             {/* Chart 3: Category Breakdown Donut + List */}
-            <div className="bg-white rounded-2xl border border-slate-200/80 p-5 sm:p-6 shadow-xs minimal-card">
+            <div className="bg-[#17171B] rounded-2xl border border-[#302B25] p-5 sm:p-6 shadow-xs minimal-card flex flex-col justify-between">
               <div className="flex items-center justify-between mb-5">
                 <div>
-                  <h3 className="text-base font-bold text-slate-900">
+                  <h3 className="text-base font-bold text-[#F5F1E8]">
                     Expense Categories Share
                   </h3>
-                  <p className="text-xs text-slate-500 mt-0.5">
+                  <p className="text-xs text-[#A6A19A] mt-0.5">
                     Spending proportion across categories
                   </p>
                 </div>
-                <span className="text-xs font-semibold px-2 py-0.5 bg-slate-100 text-slate-600 rounded-md">
+                <span className="text-xs font-semibold px-2.5 py-0.5 bg-[#1E1E23] text-[#A6A19A] border border-[#302B25] rounded-md">
                   {categoryBreakdown.length} Categories
                 </span>
               </div>
 
               {categoryBreakdown.length === 0 ? (
-                <div className="h-64 flex items-center justify-center text-center text-xs text-slate-400">
+                <div className="h-64 flex items-center justify-center text-center text-xs text-[#A6A19A]">
                   No expense records logged yet.
                 </div>
               ) : (
@@ -424,6 +424,8 @@ export default function AnalyticsPage() {
                           innerRadius={50}
                           outerRadius={80}
                           paddingAngle={3}
+                          stroke="#17171B"
+                          strokeWidth={2}
                         >
                           {categoryBreakdown.map((entry, index) => (
                             <Cell
@@ -445,16 +447,16 @@ export default function AnalyticsPage() {
                         <div key={cat.name} className="flex items-center justify-between text-xs">
                           <span className="flex items-center gap-2 truncate max-w-[120px]">
                             <span
-                              className="w-2 h-2 rounded-full flex-shrink-0"
+                              className="w-2 h-2 rounded-full shrink-0"
                               style={{ backgroundColor: color }}
                             />
-                            <span className="text-slate-700 font-medium truncate">
+                            <span className="text-[#A6A19A] font-medium truncate">
                               {cat.name}
                             </span>
                           </span>
-                          <span className="font-bold text-slate-900 font-sans">
+                          <span className="font-bold text-[#F5F1E8] font-sans">
                             {formatINR(cat.amount)}{' '}
-                            <span className="text-[11px] text-slate-400 font-normal">
+                            <span className="text-[11px] text-[#6B665F] font-normal">
                               ({cat.percentage}%)
                             </span>
                           </span>
@@ -467,21 +469,21 @@ export default function AnalyticsPage() {
             </div>
 
             {/* Chart 4: Payment Channels Breakdown */}
-            <div className="bg-white rounded-2xl border border-slate-200/80 p-5 sm:p-6 shadow-xs minimal-card">
+            <div className="bg-[#17171B] rounded-2xl border border-[#302B25] p-5 sm:p-6 shadow-xs minimal-card flex flex-col justify-between">
               <div className="flex items-center justify-between mb-5">
                 <div>
-                  <h3 className="text-base font-bold text-slate-900">
+                  <h3 className="text-base font-bold text-[#F5F1E8]">
                     Payment Method Volume
                   </h3>
-                  <p className="text-xs text-slate-500 mt-0.5">
+                  <p className="text-xs text-[#A6A19A] mt-0.5">
                     Distribution of expense outflows across payment channels
                   </p>
                 </div>
-                <CreditCard className="w-4 h-4 text-slate-400" />
+                <CreditCard className="w-4 h-4 text-[#A6A19A]" />
               </div>
 
               {paymentMethodStats.length === 0 ? (
-                <div className="h-64 flex items-center justify-center text-center text-xs text-slate-400">
+                <div className="h-64 flex items-center justify-center text-center text-xs text-[#A6A19A]">
                   No payment data available.
                 </div>
               ) : (
@@ -492,12 +494,12 @@ export default function AnalyticsPage() {
                       layout="vertical"
                       margin={{ top: 5, right: 20, left: 20, bottom: 5 }}
                     >
-                      <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f1f5f9" />
+                      <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#302B25" />
                       <XAxis
                         type="number"
                         tickLine={false}
                         axisLine={false}
-                        tick={{ fill: '#64748b', fontSize: 10 }}
+                        tick={{ fill: '#A6A19A', fontSize: 10 }}
                         tickFormatter={(val) => formatCompactINR(val)}
                       />
                       <YAxis
@@ -505,14 +507,14 @@ export default function AnalyticsPage() {
                         dataKey="name"
                         tickLine={false}
                         axisLine={false}
-                        tick={{ fill: '#334155', fontSize: 11, fontWeight: 500 }}
+                        tick={{ fill: '#A6A19A', fontSize: 11, fontWeight: 500 }}
                         width={90}
                       />
                       <Tooltip content={<AnalyticsTooltip />} />
                       <Bar
                         name="Outflow"
                         dataKey="expense"
-                        fill="#4f46e5"
+                        fill="#D4AF72"
                         radius={[0, 4, 4, 0]}
                         maxBarSize={18}
                       />
@@ -525,17 +527,17 @@ export default function AnalyticsPage() {
 
           {/* Row 3: Income Streams Distribution (if any income recorded) */}
           {incomeCategoryStats.length > 0 && (
-            <div className="bg-white rounded-2xl border border-slate-200/80 p-5 sm:p-6 shadow-xs minimal-card">
+            <div className="bg-[#17171B] rounded-2xl border border-[#302B25] p-5 sm:p-6 shadow-xs minimal-card">
               <div className="flex items-center justify-between mb-4">
                 <div>
-                  <h3 className="text-base font-bold text-slate-900">
+                  <h3 className="text-base font-bold text-[#F5F1E8]">
                     Income Streams Breakdown
                   </h3>
-                  <p className="text-xs text-slate-500 mt-0.5">
+                  <p className="text-xs text-[#A6A19A] mt-0.5">
                     Distribution of all earned inflows by category
                   </p>
                 </div>
-                <span className="text-xs font-semibold px-2 py-0.5 bg-emerald-50 text-emerald-700 border border-emerald-100 rounded-md">
+                <span className="text-xs font-semibold px-2.5 py-0.5 bg-[#2EB872]/15 text-[#2EB872] border border-[#2EB872]/30 rounded-md">
                   {formatINR(summary.totalIncome)} Total
                 </span>
               </div>
@@ -544,17 +546,17 @@ export default function AnalyticsPage() {
                 {incomeCategoryStats.map((item) => (
                   <div
                     key={item.name}
-                    className="p-3.5 bg-slate-50/80 rounded-xl border border-slate-200/70 space-y-1.5"
+                    className="p-3.5 bg-[#1E1E23] rounded-xl border border-[#302B25] space-y-1.5"
                   >
                     <div className="flex items-center justify-between text-xs">
-                      <span className="font-bold text-slate-800 truncate">
+                      <span className="font-bold text-[#F5F1E8] truncate">
                         {item.name}
                       </span>
-                      <span className="text-[11px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded">
+                      <span className="text-[11px] font-bold text-[#2EB872] bg-[#2EB872]/15 border border-[#2EB872]/30 px-1.5 py-0.5 rounded">
                         {item.percentage}%
                       </span>
                     </div>
-                    <div className="text-base font-extrabold text-slate-900 font-sans">
+                    <div className="text-base font-extrabold text-[#2EB872] font-sans">
                       +{formatINR(item.amount)}
                     </div>
                   </div>

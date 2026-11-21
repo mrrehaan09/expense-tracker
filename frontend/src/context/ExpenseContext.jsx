@@ -12,6 +12,7 @@ export function ExpenseProvider({ children }) {
   const [error, setError] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+  const [groups, setGroups] = useState([]);
 
   const [data, setData] = useState({
     summary: {
@@ -24,6 +25,22 @@ export function ExpenseProvider({ children }) {
     monthlyStats: [],
     transactions: [],
   });
+
+  // Fetch expense groups
+  const fetchGroups = useCallback(async () => {
+    if (!user) {
+      setGroups([]);
+      return;
+    }
+    try {
+      const res = await api.get('/groups');
+      if (res.data && res.data.success) {
+        setGroups(res.data.groups || []);
+      }
+    } catch (err) {
+      console.error('Failed to load groups:', err);
+    }
+  }, [user]);
 
   // Fetch real data from MongoDB backend
   const fetchExpenses = useCallback(async (isSilent = false) => {
@@ -50,6 +67,7 @@ export function ExpenseProvider({ children }) {
           monthlyStats: res.data.monthlyStats || [],
           transactions: res.data.transactions || [],
         });
+        fetchGroups();
       }
     } catch (err) {
       console.error('Failed to load expenses:', err);
@@ -58,11 +76,12 @@ export function ExpenseProvider({ children }) {
       setLoading(false);
       setIsRefreshing(false);
     }
-  }, [user]);
+  }, [user, fetchGroups]);
 
   useEffect(() => {
     fetchExpenses();
-  }, [fetchExpenses]);
+    fetchGroups();
+  }, [fetchExpenses, fetchGroups]);
 
   // Create transaction
   const addTransaction = async (formData) => {
@@ -94,6 +113,75 @@ export function ExpenseProvider({ children }) {
     }
   };
 
+  // Update transaction (e.g. reassign group, edit details)
+  const updateTransaction = async (id, updateData) => {
+    try {
+      const res = await api.put(`/expenses/${id}`, updateData);
+      if (res.data && res.data.success) {
+        await fetchExpenses(true);
+        await fetchGroups();
+        return { success: true, transaction: res.data.transaction };
+      }
+      return { success: false, message: 'Failed to update transaction' };
+    } catch (err) {
+      const msg = err.response?.data?.message || 'Error updating transaction';
+      return { success: false, message: msg };
+    }
+  };
+
+  // Reassign transaction to a group or Personal (null)
+  const updateTransactionGroup = async (transactionId, groupId) => {
+    return updateTransaction(transactionId, { group: groupId || null });
+  };
+
+  // Create new group
+  const createGroup = async (groupData) => {
+    try {
+      const res = await api.post('/groups', groupData);
+      if (res.data && res.data.success) {
+        await fetchGroups();
+        await fetchExpenses(true);
+        return { success: true, group: res.data.group };
+      }
+      return { success: false, message: 'Failed to create group' };
+    } catch (err) {
+      const msg = err.response?.data?.message || 'Error creating group';
+      return { success: false, message: msg };
+    }
+  };
+
+  // Update existing group
+  const updateGroup = async (id, groupData) => {
+    try {
+      const res = await api.put(`/groups/${id}`, groupData);
+      if (res.data && res.data.success) {
+        await fetchGroups();
+        await fetchExpenses(true);
+        return { success: true, group: res.data.group };
+      }
+      return { success: false, message: 'Failed to update group' };
+    } catch (err) {
+      const msg = err.response?.data?.message || 'Error updating group';
+      return { success: false, message: msg };
+    }
+  };
+
+  // Delete group (associated transactions automatically revert to personal)
+  const deleteGroup = async (id) => {
+    try {
+      const res = await api.delete(`/groups/${id}`);
+      if (res.data && res.data.success) {
+        await fetchGroups();
+        await fetchExpenses(true);
+        return { success: true };
+      }
+      return { success: false, message: 'Failed to delete group' };
+    } catch (err) {
+      const msg = err.response?.data?.message || 'Error deleting group';
+      return { success: false, message: msg };
+    }
+  };
+
   const value = {
     user,
     loading,
@@ -103,9 +191,16 @@ export function ExpenseProvider({ children }) {
     categoryBreakdown: data.categoryBreakdown,
     monthlyStats: data.monthlyStats,
     transactions: data.transactions,
+    groups,
+    fetchGroups,
+    createGroup,
+    updateGroup,
+    deleteGroup,
     fetchExpenses,
     addTransaction,
     deleteTransaction,
+    updateTransaction,
+    updateTransactionGroup,
     isModalOpen,
     setIsModalOpen,
     isExportModalOpen,

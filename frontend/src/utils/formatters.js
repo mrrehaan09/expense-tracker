@@ -30,6 +30,35 @@ export const formatCompactINR = (amount = 0) => {
   return `₹${num}`;
 };
 
+/**
+ * Obsidian Gold Theme: Payment method badge styling
+ * Provides refined dark elevated surface pills with subtle accent borders
+ */
+export const getPaymentBadge = (method = 'Other') => {
+  if (method.includes('PhonePe')) {
+    return 'bg-[rgba(124,58,237,0.12)] text-[#C4B5FD] border-[rgba(124,58,237,0.30)]';
+  }
+  if (method.includes('Paytm')) {
+    return 'bg-[rgba(2,132,199,0.12)] text-[#7DD3FC] border-[rgba(2,132,199,0.30)]';
+  }
+  if (method.includes('Google Pay')) {
+    return 'bg-[rgba(59,130,246,0.12)] text-[#93C5FD] border-[rgba(59,130,246,0.30)]';
+  }
+  if (method.includes('UPI')) {
+    return 'bg-[rgba(99,102,241,0.12)] text-[#A5B4FC] border-[rgba(99,102,241,0.30)]';
+  }
+  if (method === 'Cash') {
+    return 'bg-[rgba(46,184,114,0.12)] text-[#2EB872] border-[rgba(46,184,114,0.30)]';
+  }
+  if (method.includes('Card')) {
+    return 'bg-[rgba(212,175,114,0.12)] text-[#D4AF72] border-[rgba(212,175,114,0.30)]';
+  }
+  if (method.includes('Bank') || method.includes('Net Banking')) {
+    return 'bg-[rgba(13,148,136,0.12)] text-[#5EEAD4] border-[rgba(13,148,136,0.30)]';
+  }
+  return 'bg-[#1E1E23] text-[#A6A19A] border-[#302B25]';
+};
+
 export const EXPENSE_CATEGORIES = [
   'Food & Dining',
   'Groceries',

@@ -15,10 +15,16 @@ export const formatINRPdf = (amount = 0) => {
 };
 
 /**
- * Format date for PDF display
+ * Format date reliably for PDF display without timezone shifting
  */
-const formatDatePdf = (dateVal) => {
+export const formatDatePdf = (dateVal) => {
   if (!dateVal) return '-';
+  // If string matches YYYY-MM-DD, parse year, month, day directly
+  if (typeof dateVal === 'string' && /^\d{4}-\d{2}-\d{2}/.test(dateVal)) {
+    const [y, m, d] = dateVal.slice(0, 10).split('-').map(Number);
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    return `${String(d).padStart(2, '0')} ${months[m - 1]} ${y}`;
+  }
   const d = new Date(dateVal);
   if (isNaN(d.getTime())) return '-';
   return d.toLocaleDateString('en-IN', {
@@ -28,7 +34,7 @@ const formatDatePdf = (dateVal) => {
   });
 };
 
-const formatDateTimePdf = (dateVal) => {
+export const formatDateTimePdf = (dateVal) => {
   if (!dateVal) return '-';
   const d = new Date(dateVal);
   if (isNaN(d.getTime())) return '-';
@@ -45,26 +51,35 @@ const formatDateTimePdf = (dateVal) => {
  * Generates and downloads a complete, professional financial statement PDF
  * 
  * @param {Object} options
- * @param {Array} options.transactions - List of transaction objects to export
+ * @param {Array} options.transactions - Filtered transaction objects to export
  * @param {Object} options.user - Current logged-in user details
- * @param {string} options.scopeTitle - Description of the scope (e.g. "All-Time Complete Ledger" or "Filtered Range")
+ * @param {string} options.scopeTitle - Description of the scope (e.g. "All-Time History", "This Month", "Custom Range")
  * @param {string} options.dateRangeLabel - Text description of the timeframe
- * @param {Object} options.filterDetails - Optional active filter metadata for subtitle
+ * @param {string} options.filterDetails - Optional active filter metadata for subtitle
+ * @param {string} options.groupTitle - Title of specific group if isolated
  */
 export const exportTransactionsPDF = ({
   transactions = [],
   user = null,
-  scopeTitle = 'All-Time Complete History',
+  scopeTitle = 'Complete Financial Statement',
   dateRangeLabel = 'All Time',
   filterDetails = null,
+  groupTitle = null,
 }) => {
-  // 1. Calculate overall metrics from the exported dataset
+  // Sort transactions chronologically (newest first for standard bank/expense ledger)
+  const sortedTransactions = [...transactions].sort((a, b) => {
+    const dateA = new Date(a.date || a.createdAt).getTime();
+    const dateB = new Date(b.date || b.createdAt).getTime();
+    return dateB - dateA;
+  });
+
+  // 1. Calculate metrics strictly from the exported rows so totals match 100%
   let totalIncome = 0;
   let totalExpense = 0;
   const categoryTotals = {};
   const paymentMethodTotals = {};
 
-  transactions.forEach((tx) => {
+  sortedTransactions.forEach((tx) => {
     const amt = Number(tx.amount) || 0;
     if (tx.type === 'income') {
       totalIncome += amt;
@@ -89,33 +104,36 @@ export const exportTransactionsPDF = ({
     }))
     .sort((a, b) => b.amount - a.amount);
 
-  // 2. Initialize jsPDF instance (Portrait A4)
+  // 2. Initialize jsPDF instance (Portrait A4: 210mm x 297mm)
   const doc = new jsPDF({
     orientation: 'portrait',
     unit: 'mm',
     format: 'a4',
   });
 
-  const pageWidth = doc.internal.pageSize.getWidth();
-  const pageHeight = doc.internal.pageSize.getHeight();
-  const marginX = 14;
+  const pageWidth = doc.internal.pageSize.getWidth(); // 210mm
+  const pageHeight = doc.internal.pageSize.getHeight(); // 297mm
+  const marginX = 14; // Printable width = 210 - 28 = 182mm
   let currentY = 16;
 
   // ── Top Brand Header ───────────────────────────────────────────────
-  doc.setFillColor(30, 41, 59); // Slate-800
+  doc.setFillColor(15, 23, 42); // Slate-900 accent bar
   doc.rect(marginX, currentY, pageWidth - marginX * 2, 1.2, 'F');
   currentY += 6;
 
   // Title & Tagline
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(18);
-  doc.setTextColor(15, 23, 42); // Slate-900
+  doc.setTextColor(15, 23, 42);
   doc.text('FinTrack', marginX, currentY);
 
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(8.5);
   doc.setTextColor(100, 116, 139); // Slate-500
-  doc.text('Smart Daily Expense Tracker · Financial Statement', marginX + 30, currentY - 0.5);
+  const headerSubtitle = groupTitle
+    ? `Group Financial Statement · ${groupTitle}`
+    : 'Smart Daily Expense Tracker · Financial Statement';
+  doc.text(headerSubtitle, marginX + 30, currentY - 0.5);
 
   // Right-aligned report metadata
   doc.setFontSize(8);
@@ -127,42 +145,43 @@ export const exportTransactionsPDF = ({
 
   currentY += 8;
 
-  // User & Scope details bar
+  // ── User & Scope Details Bar ───────────────────────────────────────
   doc.setFillColor(248, 250, 252); // Slate-50
   doc.setDrawColor(226, 232, 240); // Slate-200
   doc.setLineWidth(0.4);
-  doc.roundedRect(marginX, currentY, pageWidth - marginX * 2, 13, 2, 2, 'FD');
+  doc.roundedRect(marginX, currentY, pageWidth - marginX * 2, 14, 2, 2, 'FD');
 
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(8.5);
-  doc.setTextColor(51, 65, 85);
-  const userName = user?.name ? `${user.name} (${user.email || ''})` : 'Registered User';
+  doc.setTextColor(30, 41, 59);
+  const userName = user?.name ? `${user.name} (${user.email || ''})` : 'Registered FinTrack User';
   doc.text(`Account: ${userName}`, marginX + 4, currentY + 5.5);
 
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(8);
   doc.setTextColor(100, 116, 139);
-  let scopeInfoText = `Scope: ${scopeTitle} · Timeframe: ${dateRangeLabel} · Records: ${transactions.length}`;
+  let scopeInfoText = `Scope: ${groupTitle ? `Group [${groupTitle}]` : scopeTitle} · Timeframe: ${dateRangeLabel} · Records: ${sortedTransactions.length}`;
   if (filterDetails) {
     scopeInfoText += ` · Filter: ${filterDetails}`;
   }
-  doc.text(scopeInfoText, marginX + 4, currentY + 9.8);
+  doc.text(scopeInfoText, marginX + 4, currentY + 10.2);
 
-  currentY += 17;
+  currentY += 18;
 
-  // ── Executive Summary Metrics (4 KPI Cards) ─────────────────────────
+  // ── Executive Summary Metrics (4 Equal KPI Cards) ───────────────────
+  // Total printable width = 182mm. 4 cards with 3 gaps of 3mm = 182 - 9 = 173 / 4 = 43.25mm each
   const boxWidth = (pageWidth - marginX * 2 - 9) / 4;
   const boxHeight = 16;
 
   const kpis = [
     {
       title: 'TOTAL INFLOW (INCOME)',
-      value: formatINRPdf(totalIncome),
+      value: `+${formatINRPdf(totalIncome)}`,
       textColor: [5, 150, 105], // Emerald-600
     },
     {
       title: 'TOTAL OUTFLOW (EXPENSES)',
-      value: formatINRPdf(totalExpense),
+      value: `-${formatINRPdf(totalExpense)}`,
       textColor: [225, 29, 72], // Rose-600
     },
     {
@@ -171,9 +190,9 @@ export const exportTransactionsPDF = ({
       textColor: netBalance >= 0 ? [5, 150, 105] : [225, 29, 72],
     },
     {
-      title: 'TRANSACTION COUNT',
-      value: `${transactions.length} record${transactions.length === 1 ? '' : 's'}`,
-      textColor: [30, 41, 59], // Slate-800
+      title: 'TOTAL TRANSACTIONS',
+      value: `${sortedTransactions.length} record${sortedTransactions.length === 1 ? '' : 's'}`,
+      textColor: [15, 23, 42], // Slate-900
     },
   ];
 
@@ -195,15 +214,15 @@ export const exportTransactionsPDF = ({
     doc.text(kpi.value, x + 3.5, currentY + 11.5);
   });
 
-  currentY += boxHeight + 6;
+  currentY += boxHeight + 7;
 
-  // ── Category Breakdown Table (if expenses exist) ────────────────────
+  // ── Category Breakdown Table (Rendered if expenses exist) ──────────
   if (categoryRows.length > 0) {
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(9.5);
     doc.setTextColor(15, 23, 42);
     doc.text('Expense Category Breakdown', marginX, currentY);
-    currentY += 2;
+    currentY += 2.5;
 
     const catTableBody = categoryRows.map((cat, idx) => [
       String(idx + 1),
@@ -232,62 +251,66 @@ export const exportTransactionsPDF = ({
         fontSize: 7.5,
       },
       columnStyles: {
-        0: { cellWidth: 10, halign: 'center' },
-        1: { halign: 'left' },
-        2: { cellWidth: 35, halign: 'right', fontStyle: 'bold' },
-        3: { cellWidth: 25, halign: 'right' },
+        0: { cellWidth: 8, halign: 'center' },
+        1: { cellWidth: 74, halign: 'left' },
+        2: { cellWidth: 55, halign: 'right', fontStyle: 'bold' },
+        3: { cellWidth: 45, halign: 'right' },
       },
     });
 
-    currentY = doc.lastAutoTable.finalY + 7;
+    currentY = doc.lastAutoTable.finalY + 8;
   }
 
-  // ── Check if we need page break before transaction ledger ──────────
+  // ── Page Break Clearance for Transaction Ledger ────────────────────
+  // If less than 50mm remains on Page 1, start ledger cleanly on Page 2
   if (currentY > pageHeight - 50) {
     doc.addPage();
-    currentY = 20;
+    currentY = 22;
   }
 
   // ── Full Transaction Ledger Table ──────────────────────────────────
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(10);
   doc.setTextColor(15, 23, 42);
-  doc.text('Complete Transaction Ledger', marginX, currentY);
+  doc.text('Transaction Ledger', marginX, currentY);
 
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(8);
   doc.setTextColor(100, 116, 139);
   doc.text(
-    `Displaying all ${transactions.length} record(s) sorted chronologically`,
-    marginX + 60,
+    `Sorted chronologically · ${sortedTransactions.length} transaction(s)`,
+    marginX + 45,
     currentY
   );
-  currentY += 2.5;
+  currentY += 3;
 
-  const ledgerRows = transactions.map((tx, idx) => {
+  // Column definitions (Sum = 7 + 20 + 37 + 22 + 15 + 26 + 27 + 28 = 182mm)
+  const ledgerRows = sortedTransactions.map((tx, idx) => {
     const isIncome = tx.type === 'income';
     const sign = isIncome ? '+' : '-';
+    const groupName = tx.group?.title || (typeof tx.group === 'string' ? tx.group : 'Personal');
+
     return [
       String(idx + 1),
       formatDatePdf(tx.date || tx.createdAt),
       tx.title || 'Untitled',
+      groupName,
       isIncome ? 'Income' : 'Expense',
       tx.category || 'General',
       tx.paymentMethod || 'Other',
-      tx.note ? String(tx.note).slice(0, 45) : '-',
       `${sign}${formatINRPdf(tx.amount)}`,
     ];
   });
 
   autoTable(doc, {
     startY: currentY,
-    margin: { top: 20, bottom: 18, left: marginX, right: marginX },
-    head: [['#', 'Date', 'Description / Title', 'Type', 'Category', 'Payment Method', 'Notes', 'Amount']],
+    margin: { top: 22, bottom: 20, left: marginX, right: marginX },
+    head: [['#', 'Date', 'Description / Title', 'Group', 'Type', 'Category', 'Payment Method', 'Amount']],
     body: ledgerRows,
     showHead: 'everyPage',
     theme: 'plain',
     styles: {
-      fontSize: 7.5,
+      fontSize: 7.2,
       cellPadding: 2.2,
       textColor: [51, 65, 85],
       lineColor: [226, 232, 240],
@@ -295,32 +318,31 @@ export const exportTransactionsPDF = ({
       overflow: 'linebreak',
     },
     headStyles: {
-      fillColor: [30, 41, 59], // Slate-800
+      fillColor: [15, 23, 42], // Slate-900
       textColor: [255, 255, 255],
       fontStyle: 'bold',
-      fontSize: 7.8,
+      fontSize: 7.5,
     },
     alternateRowStyles: {
       fillColor: [248, 250, 252], // Slate-50
     },
     columnStyles: {
-      0: { cellWidth: 8, halign: 'center' },
-      1: { cellWidth: 22, halign: 'left' },
-      2: { cellWidth: 40, halign: 'left', fontStyle: 'bold' },
-      3: { cellWidth: 16, halign: 'center' },
-      4: { cellWidth: 26, halign: 'left' },
-      5: { cellWidth: 22, halign: 'left' },
-      6: { cellWidth: 26, halign: 'left', textColor: [100, 116, 139] },
-      7: { cellWidth: 22, halign: 'right', fontStyle: 'bold' },
+      0: { cellWidth: 7, halign: 'center' },
+      1: { cellWidth: 20, halign: 'left' },
+      2: { cellWidth: 37, halign: 'left', fontStyle: 'bold' },
+      3: { cellWidth: 22, halign: 'left' },
+      4: { cellWidth: 15, halign: 'center' },
+      5: { cellWidth: 26, halign: 'left' },
+      6: { cellWidth: 27, halign: 'left' },
+      7: { cellWidth: 28, halign: 'right', fontStyle: 'bold' },
     },
     didParseCell: (data) => {
-      // Highlight Income vs Expense styling
       if (data.section === 'body') {
-        const rawRow = transactions[data.row.index];
+        const rawRow = sortedTransactions[data.row.index];
         const isIncome = rawRow?.type === 'income';
 
-        // Column 3 is 'Type'
-        if (data.column.index === 3) {
+        // Column 4 is 'Type'
+        if (data.column.index === 4) {
           data.cell.styles.textColor = isIncome ? [5, 150, 105] : [225, 29, 72];
           data.cell.styles.fontStyle = 'bold';
         }
@@ -332,25 +354,25 @@ export const exportTransactionsPDF = ({
     },
   });
 
-  // ── Multi-page Running Headers & Footers with Page Numbers ─────────
+  // ── Multi-page Running Headers & Footers with Safe Margins ─────────
   const totalPages = doc.internal.getNumberOfPages();
   for (let i = 1; i <= totalPages; i++) {
     doc.setPage(i);
 
-    // Running top rule on page 2 and onwards
+    // Running top header on page 2 and onwards (never collides with table starting at Y=22)
     if (i > 1) {
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(7.5);
-      doc.setTextColor(148, 163, 184); // Slate-400
+      doc.setTextColor(100, 116, 139); // Slate-500
       doc.text(
-        `FinTrack · Financial Statement (${scopeTitle})`,
+        `FinTrack · ${groupTitle ? `Group: ${groupTitle}` : scopeTitle}`,
         marginX,
-        12
+        11
       );
       doc.text(
         `Page ${i} of ${totalPages}`,
         pageWidth - marginX,
-        12,
+        11,
         { align: 'right' }
       );
       doc.setDrawColor(226, 232, 240);
@@ -358,17 +380,17 @@ export const exportTransactionsPDF = ({
       doc.line(marginX, 14, pageWidth - marginX, 14);
     }
 
-    // Running footer on every page
+    // Running footer on EVERY page (divider at pageHeight - 13, text at pageHeight - 8)
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(7.5);
     doc.setTextColor(148, 163, 184); // Slate-400
 
-    doc.setDrawColor(241, 245, 249);
+    doc.setDrawColor(226, 232, 240);
     doc.setLineWidth(0.3);
-    doc.line(marginX, pageHeight - 12, pageWidth - marginX, pageHeight - 12);
+    doc.line(marginX, pageHeight - 13, pageWidth - marginX, pageHeight - 13);
 
     doc.text(
-      `Generated by FinTrack Smart Daily Expense Tracker · All amounts in INR (Rs.)`,
+      `Generated by FinTrack Smart Expense Tracker · Currency: INR (Rs.)`,
       marginX,
       pageHeight - 8
     );
@@ -382,7 +404,9 @@ export const exportTransactionsPDF = ({
 
   // 3. Save PDF File
   const dateStr = now.toISOString().slice(0, 10);
-  const cleanScope = scopeTitle.toLowerCase().includes('all') ? 'All_Time' : 'Filtered';
+  const cleanScope = (groupTitle || scopeTitle)
+    .replace(/[^a-zA-Z0-9_-]/g, '_')
+    .slice(0, 25);
   const fileName = `FinTrack_Statement_${cleanScope}_${dateStr}.pdf`;
   doc.save(fileName);
   return { success: true, fileName };
